@@ -251,7 +251,7 @@ export default function Wizard({ template }: { template: any }) {
                     style={styles.primaryBtn}
                     onClick={handleNext}
                   >
-                    Selanjutnya (Next) <ArrowDown size={18} style={{ marginLeft: 8 }} />
+                    Mulai <ArrowDown size={18} style={{ marginLeft: 8 }} />
                   </button>
                   <span style={styles.pressEnterHint}>Tekan <strong>Enter ↵</strong></span>
                 </div>
@@ -280,7 +280,7 @@ export default function Wizard({ template }: { template: any }) {
                     onClick={handleNext}
                     disabled={!canProceed}
                   >
-                    Mulai <Check size={18} style={{ marginLeft: 8 }} />
+                    Lanjut <Check size={18} style={{ marginLeft: 8 }} />
                   </button>
                   <span style={styles.pressEnterHint}>Tekan <strong>Enter ↵</strong></span>
                 </div>
