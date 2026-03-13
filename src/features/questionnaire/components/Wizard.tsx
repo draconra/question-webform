@@ -113,13 +113,11 @@ export default function Wizard({ template }: { template: any }) {
         const idx = parseInt(e.key) - 1;
         if (options[idx]) {
           setAnswers(prev => ({ ...prev, [currentQuestion.id]: String(idx) }));
-          // Auto-advance after small delay
+          // Auto-advance after small delay (except on the last question)
           setTimeout(() => {
-            setDirection(1);
             if (currentStep < questions.length - 1) {
+              setDirection(1);
               setStep(currentStep + 1);
-            } else {
-              submitForm();
             }
           }, 400);
         }
@@ -161,13 +159,11 @@ export default function Wizard({ template }: { template: any }) {
                 key={index}
                 onClick={() => {
                   setAnswers({ ...answers, [currentQuestion.id]: String(index) });
-                  // Auto-advance on click
+                  // Auto-advance on click (except on the last question)
                   setTimeout(() => {
-                    setDirection(1);
                     if (currentStep < questions.length - 1) {
+                      setDirection(1);
                       setStep(currentStep + 1);
-                    } else {
-                      submitForm();
                     }
                   }, 400);
                 }}
@@ -255,7 +251,7 @@ export default function Wizard({ template }: { template: any }) {
                     style={styles.primaryBtn}
                     onClick={handleNext}
                   >
-                    Lanjut <ArrowDown size={18} style={{ marginLeft: 8 }} />
+                    Selanjutnya (Next) <ArrowDown size={18} style={{ marginLeft: 8 }} />
                   </button>
                   <span style={styles.pressEnterHint}>Tekan <strong>Enter ↵</strong></span>
                 </div>
@@ -300,8 +296,8 @@ export default function Wizard({ template }: { template: any }) {
                 {renderInput()}
                 {error && <p style={styles.errorText}>{error}</p>}
 
-                {/* Only show OK button for text/number inputs since radio auto-advances */}
-                {currentQuestion?.type !== 'radio' && (
+                {/* Show OK button for text/number inputs, OR if it's the very last question (Submit) */}
+                {(currentQuestion?.type !== 'radio' || currentStep === questions.length - 1) && (
                   <div style={{ display: 'flex', alignItems: 'center', marginTop: '2rem' }}>
                     <button 
                       style={{ ...styles.primaryBtn, opacity: canProceed ? 1 : 0.5 }}
