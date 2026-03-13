@@ -32,7 +32,7 @@ export interface QuestionnaireRepository {
   getTemplateWithResponses(): Promise<(FormTemplate & { questions: Question[]; responses: (Response & { answers: Answer[] })[] }) | null>
   saveResponse(formTemplateId: string, inisial: string, totalScore: number, answers: { questionId: string; value: string }[]): Promise<Response>
   countResponses(): Promise<number>
-  getAnalytics(): Promise<AnalyticsQuestion[]>
+  getAnalytics(inisial?: string): Promise<AnalyticsQuestion[]>
   getScoresByInisial(): Promise<ScoreSummary[]>
 }
 
@@ -84,11 +84,14 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
     return this.prisma.response.count()
   }
 
-  async getAnalytics(): Promise<AnalyticsQuestion[]> {
+  async getAnalytics(inisial?: string): Promise<AnalyticsQuestion[]> {
     const template = await this.prisma.formTemplate.findFirst({
       include: {
         questions: { orderBy: { orderIndex: 'asc' } },
-        responses: { include: { answers: true } },
+        responses: { 
+          where: inisial ? { inisial } : undefined,
+          include: { answers: true } 
+        },
       },
     })
     if (!template) return []

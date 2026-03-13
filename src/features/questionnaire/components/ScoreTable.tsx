@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 type ScoreSummary = {
   inisial: string
@@ -9,6 +10,7 @@ type ScoreSummary = {
 }
 
 export default function ScoreTable() {
+  const router = useRouter()
   const [scores, setScores] = useState<ScoreSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -50,7 +52,13 @@ export default function ScoreTable() {
             return (
               <tr key={`${score.inisial}-${idx}`} style={styles.tr}>
                 <td style={styles.td}>
-                  <div style={styles.inisialBadge}>{score.inisial}</div>
+                  <button 
+                    onClick={() => router.push(`?inisial=${encodeURIComponent(score.inisial)}`)}
+                    style={styles.inisialButton}
+                    title="Lihat analitik untuk pasien ini"
+                  >
+                    {score.inisial}
+                  </button>
                 </td>
                 <td style={styles.td}>
                   {date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -115,7 +123,7 @@ const styles = {
     fontSize: '16px',
     fontWeight: 600,
   } as React.CSSProperties,
-  inisialBadge: {
+  inisialButton: {
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -123,10 +131,13 @@ const styles = {
     height: '40px',
     backgroundColor: '#eff6ff',
     color: '#2563eb',
+    border: '2px solid transparent',
     borderRadius: '10px',
     fontWeight: 700,
     fontSize: '16px',
     letterSpacing: '1px',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
   } as React.CSSProperties,
   timeStr: {
     display: 'block',

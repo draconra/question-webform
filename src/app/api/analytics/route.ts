@@ -4,7 +4,10 @@ import { logger } from '@/lib/logger'
 import { QuestionnaireService, PrismaQuestionnaireRepository } from '@/features/questionnaire'
 import { randomUUID } from 'crypto'
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const inisial = searchParams.get('inisial') || undefined
+
   const correlationId = randomUUID()
   const operation = 'get_analytics'
   const startTime = Date.now()
@@ -14,7 +17,7 @@ export async function GET() {
   try {
     const repository = new PrismaQuestionnaireRepository(prisma)
     const service = new QuestionnaireService(repository)
-    const analytics = await service.getAnalytics()
+    const analytics = await service.getAnalytics(inisial)
 
     const duration = Date.now() - startTime
     logger.info('Operation succeeded', { operation, correlationId, duration })

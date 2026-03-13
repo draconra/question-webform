@@ -6,7 +6,14 @@ import AnalyticsDashboard from "@/features/questionnaire/components/AnalyticsDas
 import ScoreTable from "@/features/questionnaire/components/ScoreTable"
 import { Users, FileText, Download, LayoutDashboard, LogOut, CheckSquare } from "lucide-react"
 
-export default async function AdminDashboard() {
+export default async function AdminDashboard({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
+  const params = await searchParams
+  const selectedInisial = typeof params.inisial === 'string' ? params.inisial : null
+
   const session = await auth()
   
   if (!session) {
@@ -99,20 +106,36 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Analytics charts */}
-      <div style={styles.analyticsSection}>
-        <div style={styles.sectionHeader}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.25rem' }}>
-            <div style={styles.iconCircleBlue}>
-              <Users size={20} color="#3b82f6" />
+      {selectedInisial ? (
+        <div style={styles.analyticsSection}>
+          <div style={styles.sectionHeader}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.25rem' }}>
+              <div style={styles.iconCircleBlue}>
+                <Users size={20} color="#3b82f6" />
+              </div>
+              <h2 style={styles.sectionTitle}>Analitik per Pertanyaan: {selectedInisial}</h2>
             </div>
-            <h2 style={styles.sectionTitle}>Analitik per Pertanyaan</h2>
+            <p style={styles.sectionSubtitle}>
+              Distribusi jawaban responden untuk setiap indikator IMSA.
+            </p>
           </div>
-          <p style={styles.sectionSubtitle}>
-            Distribusi jawaban responden untuk setiap indikator IMSA.
-          </p>
+          <AnalyticsDashboard inisial={selectedInisial} />
         </div>
-        <AnalyticsDashboard />
-      </div>
+      ) : (
+        <div style={styles.analyticsSection}>
+          <div style={styles.sectionHeader}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.25rem' }}>
+              <div style={styles.iconCircleBlue}>
+                <Users size={20} color="#3b82f6" />
+              </div>
+              <h2 style={styles.sectionTitle}>Analitik per Pertanyaan</h2>
+            </div>
+          </div>
+          <div style={styles.emptyState}>
+             Klik salah satu inisial pasien pada tabel di atas untuk melihat detail analitik per pertanyaan.
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -280,5 +303,15 @@ const styles = {
     color: '#64748b',
     fontSize: '15px',
     margin: 0,
+  },
+  emptyState: {
+    padding: '4rem 2rem',
+    textAlign: 'center',
+    color: '#64748b',
+    fontSize: '16px',
+    backgroundColor: 'white',
+    borderRadius: '16px',
+    border: '2px dashed #e2e8f0',
+    marginTop: '1.5rem',
   } as React.CSSProperties,
 }

@@ -82,13 +82,14 @@ function QuestionChart({ question }: { question: AnalyticsQuestion }) {
   )
 }
 
-export default function AnalyticsDashboard() {
+export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
   const [questions, setQuestions] = useState<AnalyticsQuestion[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/analytics')
+    setLoading(true)
+    fetch(`/api/analytics?inisial=${encodeURIComponent(inisial)}`)
       .then((res) => res.json())
       .then((data) => {
         setQuestions(data)
@@ -98,7 +99,7 @@ export default function AnalyticsDashboard() {
         setError('Gagal memuat data analitik')
         setLoading(false)
       })
-  }, [])
+  }, [inisial])
 
   if (loading) {
     return <div style={styles.loading}>Memuat analitik…</div>
