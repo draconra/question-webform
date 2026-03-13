@@ -70,6 +70,14 @@ export default function Wizard({ template }: { template: any }) {
             if (!isNaN(idx) && options[idx]) {
               val = String(options[idx].value);
             }
+          } else if (q && q.type === 'checkbox') {
+            // Checkbox: rawVal is comma-separated indices like "0,2,5"
+            const options = JSON.parse(q.options || '[]');
+            const indices = rawVal.split(',').filter(Boolean).map(Number);
+            const labels = indices
+              .filter(i => !isNaN(i) && options[i])
+              .map(i => options[i].label);
+            val = labels.join(', ');
           }
           return { questionId, value: val };
         }),
@@ -108,7 +116,7 @@ export default function Wizard({ template }: { template: any }) {
       }
       
       // Auto-select radio options via number keys (1, 2, 3...)
-      if (currentQuestion?.type === 'radio' && /^[1-9]$/.test(e.key)) {
+      if ((currentQuestion?.type === 'radio') && /^[1-9]$/.test(e.key)) {
         const options = JSON.parse(currentQuestion.options || '[]');
         const idx = parseInt(e.key) - 1;
         if (options[idx]) {
@@ -120,6 +128,23 @@ export default function Wizard({ template }: { template: any }) {
               setStep(currentStep + 1);
             }
           }, 400);
+        }
+      }
+
+      // Toggle checkbox options via number keys
+      if (currentQuestion?.type === 'checkbox' && /^[1-9]$/.test(e.key)) {
+        const options = JSON.parse(currentQuestion.options || '[]');
+        const idx = parseInt(e.key) - 1;
+        if (options[idx]) {
+          setAnswers(prev => {
+            const current = prev[currentQuestion.id] || '';
+            const selected = current.split(',').filter(Boolean);
+            const idxStr = String(idx);
+            const newSelected = selected.includes(idxStr)
+              ? selected.filter(s => s !== idxStr)
+              : [...selected, idxStr];
+            return { ...prev, [currentQuestion.id]: newSelected.join(',') };
+          });
         }
       }
     };
@@ -175,6 +200,43 @@ export default function Wizard({ template }: { template: any }) {
                 }}
               >
                 <div style={styles.optionKeyLabel}>{index + 1}</div>
+                <div style={{ flex: 1 }}>{opt.label}</div>
+                {isSelected && <Check size={24} color="var(--primary-color)" />}
+              </div>
+            );
+          })}
+        </div>
+      );
+    } else if (currentQuestion.type === 'checkbox') {
+      const options = JSON.parse(currentQuestion.options || '[]');
+      const selected = (answers[currentQuestion.id] || '').split(',').filter(Boolean);
+      return (
+        <div style={styles.optionsList}>
+          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 0.5rem 0' }}>Boleh centang lebih dari 1</p>
+          {options.map((opt: any, index: number) => {
+            const isSelected = selected.includes(String(index));
+            return (
+              <div
+                key={index}
+                onClick={() => {
+                  const idxStr = String(index);
+                  const newSelected = isSelected
+                    ? selected.filter(s => s !== idxStr)
+                    : [...selected, idxStr];
+                  setAnswers({ ...answers, [currentQuestion.id]: newSelected.join(',') });
+                }}
+                style={{
+                  ...styles.optionCard,
+                  borderColor: isSelected ? 'var(--primary-color)' : 'rgba(0,0,0,0.1)',
+                  backgroundColor: isSelected ? 'rgba(0, 86, 179, 0.05)' : 'white',
+                  transform: isSelected ? 'scale(1.02)' : 'scale(1)',
+                }}
+              >
+                <div style={{
+                  ...styles.optionKeyLabel,
+                  backgroundColor: isSelected ? 'var(--primary-color)' : undefined,
+                  color: isSelected ? 'white' : undefined,
+                }}>{isSelected ? '✓' : index + 1}</div>
                 <div style={{ flex: 1 }}>{opt.label}</div>
                 {isSelected && <Check size={24} color="var(--primary-color)" />}
               </div>
