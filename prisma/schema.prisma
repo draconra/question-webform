@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Switch to PostgreSQL for Vercel deployment
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Questionnaire Models
+model FormTemplate {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  questions   Question[]
+  responses   Response[]
+}
+
+model Question {
+  id             String       @id @default(cuid())
+  formTemplateId String
+  variableName   String
+  type           String       // text, radio, checkbox, number
+  prompt         String
+  options        String?      // JSON stringified array of options: [{label: "Menikah", value: 1}]
+  orderIndex     Int
+  required       Boolean      @default(true)
+  
+  formTemplate   FormTemplate @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
+  answers        Answer[]
+}
+
+model Response {
+  id             String       @id @default(cuid())
+  formTemplateId String
+  inisial        String?      // Patient identifier initial
+  totalScore     Int?         // Computed IMSA total score (0–60)
+  createdAt      DateTime     @default(now())
+  
+  formTemplate   FormTemplate @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
+  answers        Answer[]
+}
+
+model Answer {
+  id          String   @id @default(cuid())
+  responseId  String
+  questionId  String
+  value       String?  // The numeric value or text
+  
+  response    Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  question    Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  @@unique([responseId, questionId])
+}
