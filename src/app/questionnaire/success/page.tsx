@@ -12,8 +12,8 @@ export default function SuccessPage() {
       <p className="home-description">
         Penilaian kesehatan Anda telah berhasil disimpan.
       </p>
-      <Link href="/" className="btn btn-primary" style={{ textDecoration: 'none', minWidth: '200px' }}>
-        Kembali ke Beranda
+      <Link href="/" className="btn btn-primary" style={{ textDecoration: 'none', minWidth: '160px' }}>
+        Selesai
       </Link>
     </main>
   );

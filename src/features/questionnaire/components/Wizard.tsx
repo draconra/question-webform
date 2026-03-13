@@ -166,6 +166,8 @@ export default function Wizard({ template }: { template: any }) {
                     setDirection(1);
                     if (currentStep < questions.length - 1) {
                       setStep(currentStep + 1);
+                    } else {
+                      submitForm();
                     }
                   }, 400);
                 }}
