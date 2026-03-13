@@ -5,11 +5,15 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('Seeding database with full IMSA questionnaire...')
 
-  // Clear existing entries
-  await prisma.answer.deleteMany()
-  await prisma.response.deleteMany()
-  await prisma.question.deleteMany()
-  await prisma.formTemplate.deleteMany()
+  // Check if template already exists to prevent data loss via cascade deletes
+  const existingTemplate = await prisma.formTemplate.findFirst({
+    where: { title: 'IMSA Questionnaire' }
+  })
+
+  if (existingTemplate) {
+    console.log('IMSA Questionnaire template already exists. Skipping seed to prevent data loss.')
+    return
+  }
 
   // Create IMSA Template
   const imsaTemplate = await prisma.formTemplate.create({
@@ -115,6 +119,29 @@ async function main() {
       required: true,
     },
 
+    // --- Utilisasi Layanan Kesehatan ---
+    {
+      variableName: 'frekuensi_kunjungan_fktp',
+      type: 'number',
+      prompt: 'Rata-rata frekuensi kunjungan FKTP per bulan, dalam 1 tahun terakhir',
+      orderIndex: 10,
+      required: true,
+    },
+    {
+      variableName: 'frekuensi_kunjungan_fktl',
+      type: 'number',
+      prompt: 'Rata-rata frekuensi kunjungan FKTL (RS) per bulan, dalam 1 tahun terakhir',
+      orderIndex: 11,
+      required: true,
+    },
+    {
+      variableName: 'riwayat_rawat_inap',
+      type: 'number',
+      prompt: 'Riwayat rawat inap dalam 1 tahun terakhir (jumlah kali)',
+      orderIndex: 12,
+      required: true,
+    },
+
     // --- PRA ---
     {
       variableName: 'pra_1_kemampuan_bahasa',
@@ -126,7 +153,7 @@ async function main() {
         { label: 'Pengetahuan bahasa menengah', value: 2 },
         { label: 'Pengetahuan bahasa buruk', value: 3 },
       ]),
-      orderIndex: 10,
+      orderIndex: 13,
       required: true,
     },
     {
@@ -138,7 +165,7 @@ async function main() {
         { label: 'Saya mengisi sendiri meskipun dibantu orang lain', value: 2 },
         { label: 'Orang lain mengisi setelah berkonsultasi dengan saya', value: 3 },
       ]),
-      orderIndex: 11,
+      orderIndex: 14,
       required: true,
     },
 
@@ -153,7 +180,7 @@ async function main() {
         { label: 'Ya, selama lebih dari 3 bulan', value: 1 },
         { label: 'Ya, beberapa periode singkat masalah fisik dalam 5 tahun', value: 1 },
       ]),
-      orderIndex: 12,
+      orderIndex: 15,
       required: true,
     },
     {
@@ -165,7 +192,7 @@ async function main() {
         { label: 'Ya, satu penyakit kronis', value: 2 },
         { label: 'Ya, beberapa penyakit kronis', value: 3 },
       ]),
-      orderIndex: 13,
+      orderIndex: 16,
       required: true,
     },
 
@@ -181,7 +208,7 @@ async function main() {
         { label: 'Setelah banyak pemeriksaan, masalah saya teridentifikasi', value: 2 },
         { label: 'Meskipun serangkaian pemeriksaan, penyebab masalah saya tidak pernah terdiagnosis', value: 3 },
       ]),
-      orderIndex: 14,
+      orderIndex: 17,
       required: true,
     },
 
@@ -196,7 +223,7 @@ async function main() {
         { label: 'Cukup dipengaruhi masalah fisik', value: 2 },
         { label: 'Sangat dipengaruhi masalah fisik', value: 3 },
       ]),
-      orderIndex: 15,
+      orderIndex: 18,
       required: true,
     },
 
@@ -212,7 +239,7 @@ async function main() {
         { label: 'Dokter saya mempunyai banyak keraguan tentang penyebab masalah saya', value: 3 },
         { label: 'Dokter saya masih harus mencari tahu penyebab masalah fisik saya', value: 3 },
       ]),
-      orderIndex: 16,
+      orderIndex: 19,
       required: true,
     },
     {
@@ -226,7 +253,7 @@ async function main() {
         { label: 'Saya mempunyai banyak keraguan tentang kelayakan pengobatan', value: 3 },
         { label: 'Pengobatan yang tepat masih belum ditemukan', value: 3 },
       ]),
-      orderIndex: 17,
+      orderIndex: 20,
       required: true,
     },
 
@@ -241,7 +268,7 @@ async function main() {
         { label: 'Saya sering mengalami kesulitan yang sering menyebabkan ketegangan dengan orang lain', value: 2 },
         { label: 'Saya selalu mengalami kesulitan dalam situasi penuh tekanan dan mereka membuat saya tegang', value: 3 },
       ]),
-      orderIndex: 18,
+      orderIndex: 21,
       required: true,
     },
 
@@ -256,7 +283,7 @@ async function main() {
         { label: 'Ya dan itu mempengaruhi kehidupan sehari-hari saya', value: 2 },
         { label: 'Ya dan masalah ini telah atau masih berdampak jangka panjang pada kehidupan sehari-hari saya', value: 3 },
       ]),
-      orderIndex: 19,
+      orderIndex: 22,
       required: true,
     },
 
@@ -271,7 +298,7 @@ async function main() {
         { label: 'Ya, sulit, kadang saya bisa, kadang tidak', value: 2 },
         { label: 'Ya, terlalu sulit, sering kali saya tidak berhasil', value: 3 },
       ]),
-      orderIndex: 20,
+      orderIndex: 23,
       required: true,
     },
 
@@ -286,7 +313,7 @@ async function main() {
         { label: 'Ya, masalah sedang yang sedikit mempengaruhi aktivitas sehari-hari', value: 2 },
         { label: 'Ya, masalah parah yang sangat mempengaruhi aktivitas sehari-hari', value: 3 },
       ]),
-      orderIndex: 21,
+      orderIndex: 24,
       required: true,
     },
 
@@ -299,7 +326,7 @@ async function main() {
         { label: 'Ya', value: 1 },
         { label: 'Tidak', value: 0 },
       ]),
-      orderIndex: 22,
+      orderIndex: 25,
       required: true,
     },
     {
@@ -310,7 +337,7 @@ async function main() {
         { label: 'Ya', value: 1 },
         { label: 'Tidak', value: 0 },
       ]),
-      orderIndex: 23,
+      orderIndex: 26,
       required: true,
     },
 
@@ -325,7 +352,7 @@ async function main() {
         { label: 'Sulit bagi saya untuk memulai atau mempertahankan kontak atau persahabatan', value: 2 },
         { label: 'Kontak atau persahabatan sering memburuk menjadi pertengkaran dan konflik', value: 3 },
       ]),
-      orderIndex: 24,
+      orderIndex: 27,
       required: true,
     },
 
@@ -340,7 +367,7 @@ async function main() {
         { label: 'Penyesuaian diperlukan, namun tidak segera', value: 2 },
         { label: 'Diperlukan penyesuaian segera', value: 3 },
       ]),
-      orderIndex: 25,
+      orderIndex: 28,
       required: true,
     },
 
@@ -356,7 +383,7 @@ async function main() {
         { label: 'Bantuan yang saya dapatkan sangat terbatas', value: 2 },
         { label: 'Tidak ada bantuan yang tersedia', value: 3 },
       ]),
-      orderIndex: 26,
+      orderIndex: 29,
       required: true,
     },
 
@@ -371,7 +398,7 @@ async function main() {
         { label: 'Ya, beberapa masalah ini sering saya alami', value: 2 },
         { label: 'Ya, beberapa di antaranya adalah masalah besar bagi saya', value: 3 },
       ]),
-      orderIndex: 27,
+      orderIndex: 30,
       required: true,
     },
 
@@ -386,7 +413,7 @@ async function main() {
         { label: 'Saya telah berganti dokter karena pengalaman negatif', value: 2 },
         { label: 'Saya sering berganti dokter karena pengalaman negatif atau kurangnya kepercayaan', value: 3 },
       ]),
-      orderIndex: 28,
+      orderIndex: 31,
       required: true,
     },
 
@@ -402,7 +429,7 @@ async function main() {
         { label: 'Tidak bekerja sama dengan baik, kadang menimbulkan masalah', value: 2 },
         { label: 'Dokter dan penyedia layanan kesehatan saya tidak bekerja sama', value: 3 },
       ]),
-      orderIndex: 29,
+      orderIndex: 32,
       required: true,
     },
 
@@ -417,7 +444,7 @@ async function main() {
         { label: 'Saya memperkirakan kesehatan fisik saya akan memburuk', value: 2 },
         { label: 'Saya memperkirakan kesehatan fisik saya akan semakin memburuk', value: 3 },
       ]),
-      orderIndex: 30,
+      orderIndex: 33,
       required: true,
     },
 
@@ -432,7 +459,7 @@ async function main() {
         { label: 'Saya memperkirakan kesejahteraan psikologis saya akan memburuk', value: 2 },
         { label: 'Saya memperkirakan kesejahteraan psikologis saya akan semakin memburuk', value: 3 },
       ]),
-      orderIndex: 31,
+      orderIndex: 34,
       required: true,
     },
 
@@ -447,7 +474,7 @@ async function main() {
         { label: 'Diperlukan perubahan situasi kehidupan yang lain', value: 2 },
         { label: 'Perubahan pada situasi kehidupan diperlukan segera', value: 3 },
       ]),
-      orderIndex: 32,
+      orderIndex: 35,
       required: true,
     },
 
@@ -462,7 +489,7 @@ async function main() {
         { label: 'Saya perkirakan kebutuhan perawatan saya akan meningkat pesat', value: 2 },
         { label: 'Saya berharap kebutuhan perawatan akan meningkat pesat dan layanan tambahan akan diperlukan', value: 3 },
       ]),
-      orderIndex: 33,
+      orderIndex: 36,
       required: true,
     },
   ]
