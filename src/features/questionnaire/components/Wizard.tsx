@@ -365,12 +365,16 @@ const styles = {
   contentWrapper: {
     flex: 1,
     display: 'flex',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'center',
     padding: '2rem',
+    paddingTop: '2rem',
+    paddingBottom: '5rem',
     maxWidth: '800px',
     margin: '0 auto',
     width: '100%',
+    overflowY: 'auto' as const,
+    WebkitOverflowScrolling: 'touch' as const,
   },
   stepContainer: {
     width: '100%',

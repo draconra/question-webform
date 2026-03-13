@@ -8,8 +8,8 @@ export default function Home() {
         Indonesian Medical Severity Assessment. 
         Silahkan klik tombol di bawah untuk memulai penilaian kesehatan.
       </p>
-      <Link href="/questionnaire" className="btn btn-primary" style={{ width: '100%', maxWidth: '400px', display: 'block', textDecoration: 'none' }}>
-        Mulai (Start)
+      <Link href="/questionnaire" className="btn btn-primary" style={{ textDecoration: 'none', maxWidth: '300px', padding: '1rem 2rem' }}>
+        Mulai
       </Link>
     </main>
   );
