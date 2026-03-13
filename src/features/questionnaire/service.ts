@@ -129,7 +129,7 @@ export class QuestionnaireService {
     return this.repository.getTemplate()
   }
 
-  async getTemplateWithResponses(): Promise<(FormTemplate & { questions: Question[]; responses: (Response & { answers: Answer[], inisial: string | null, totalScore: number | null })[] }) | null> {
+  async getTemplateWithResponses(): Promise<(FormTemplate & { questions: Question[]; responses: (Response & { answers: Answer[] })[] }) | null> {
     return this.repository.getTemplateWithResponses()
   }
 

@@ -29,7 +29,7 @@ export type ScoreSummary = {
  */
 export interface QuestionnaireRepository {
   getTemplate(): Promise<FormTemplateWithQuestions | null>
-  getTemplateWithResponses(): Promise<(FormTemplate & { questions: Question[]; responses: (Response & { answers: Answer[], inisial: string | null, totalScore: number | null })[] }) | null>
+  getTemplateWithResponses(): Promise<(FormTemplate & { questions: Question[]; responses: (Response & { answers: Answer[] })[] }) | null>
   saveResponse(formTemplateId: string, inisial: string, totalScore: number, answers: { questionId: string; value: string }[]): Promise<Response>
   countResponses(): Promise<number>
   getAnalytics(): Promise<AnalyticsQuestion[]>
