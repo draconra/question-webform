@@ -7,8 +7,8 @@ import { ArrowUp, ArrowDown, Check } from 'lucide-react';
 
 export default function Wizard({ template }: { template: any }) {
   const router = useRouter();
-  // Step -1 = Inisial collection screen, 0+ = questions
-  const [step, setStep] = useState<'inisial' | number>('inisial');
+  // Step -2 = Opening, Step -1 = Inisial collection screen, 0+ = questions
+  const [step, setStep] = useState<'opening' | 'inisial' | number>('opening');
   const [inisial, setInisial] = useState('');
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -19,18 +19,20 @@ export default function Wizard({ template }: { template: any }) {
   // Track scroll direction for animations
   const [direction, setDirection] = useState(1);
 
-  const currentStep = step === 'inisial' ? -1 : (step as number);
-  const progressPercentage = step === 'inisial' ? 0 : ((currentStep + 1) / questions.length) * 100;
+  const currentStep = step === 'opening' ? -2 : step === 'inisial' ? -1 : (step as number);
+  const progressPercentage = (step === 'opening' || step === 'inisial') ? 0 : ((currentStep + 1) / questions.length) * 100;
   
-  const currentQuestion = step === 'inisial' ? null : questions[currentStep];
+  const currentQuestion = (step === 'opening' || step === 'inisial') ? null : questions[currentStep];
   const currentAnswer = currentQuestion ? (answers[currentQuestion.id] || '') : '';
-  const canProceed = step === 'inisial' ? inisial.trim() !== '' : currentAnswer !== '';
+  const canProceed = step === 'opening' ? true : step === 'inisial' ? inisial.trim() !== '' : currentAnswer !== '';
 
   const handleNext = async () => {
     if (!canProceed || isSubmitting) return;
     
     setDirection(1);
-    if (step === 'inisial') {
+    if (step === 'opening') {
+      setStep('inisial');
+    } else if (step === 'inisial') {
       setStep(0);
     } else if (currentStep < questions.length - 1) {
       setStep(currentStep + 1);
@@ -43,7 +45,9 @@ export default function Wizard({ template }: { template: any }) {
     if (isSubmitting) return;
     setDirection(-1);
     
-    if (currentStep === 0) {
+    if (step === 'inisial') {
+      setStep('opening');
+    } else if (currentStep === 0) {
       setStep('inisial');
     } else if (currentStep > 0) {
       setStep(currentStep - 1);
@@ -224,7 +228,37 @@ export default function Wizard({ template }: { template: any }) {
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             style={styles.stepContainer}
           >
-            {step === 'inisial' ? (
+            {step === 'opening' ? (
+              <div style={styles.questionBlock}>
+                <div style={styles.questionNumber}>Selamat Datang</div>
+                <h2 style={{ ...styles.promptText, fontSize: '32px' }}>Bapak/Ibu yang terhormat,</h2>
+                <div style={{ ...styles.helperText, fontSize: '18px', color: '#4b5563' }}>
+                  <p style={{ marginBottom: '1rem' }}>
+                    Kuesioner ini akan membantu pemberi layanan kesehatan (tenaga kesehatan profesional yang bertanggung jawab atas perawatan Anda) mendapatkan gambaran yang lebih baik tentang konsekuensi penyakit Anda.
+                  </p>
+                  <p style={{ marginBottom: '1rem' }}>
+                    Kuesioner ini berisi informasi penting yang kami perlukan untuk menyesuaikan perawatan yang akan kami berikan dengan kebutuhan Anda.
+                  </p>
+                  <p style={{ marginBottom: '1rem' }}>
+                    Silakan isi kuesioner dengan memberi tanda centang pada jawaban yang paling sesuai dengan Anda.
+                  </p>
+                  <p style={{ marginBottom: '1rem' }}>
+                    Jika Anda mengalami kesulitan dalam menjawab, Anda dapat meminta bantuan anggota keluarga, perawat atau orang terdekat Anda untuk membantu pengisian kuesioner.
+                  </p>
+                  <p>Terima kasih.</p>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', marginTop: '1rem' }}>
+                  <button 
+                    style={styles.primaryBtn}
+                    onClick={handleNext}
+                  >
+                    Lanjut <ArrowDown size={18} style={{ marginLeft: 8 }} />
+                  </button>
+                  <span style={styles.pressEnterHint}>Tekan <strong>Enter ↵</strong></span>
+                </div>
+              </div>
+            ) : step === 'inisial' ? (
               <div style={styles.questionBlock}>
                 <div style={styles.questionNumber}>Langkah Awal</div>
                 <h2 style={styles.promptText}>Silakan masukkan inisial Anda</h2>
@@ -286,9 +320,9 @@ export default function Wizard({ template }: { template: any }) {
       {/* Floating Navigation Controls */}
       <div style={styles.floatingNav}>
         <button 
-          style={{ ...styles.navBtn, opacity: step === 'inisial' ? 0.3 : 1 }} 
+          style={{ ...styles.navBtn, opacity: step === 'opening' ? 0.3 : 1 }} 
           onClick={handlePrevious}
-          disabled={step === 'inisial' || isSubmitting}
+          disabled={step === 'opening' || isSubmitting}
         >
           <ArrowUp size={24} />
         </button>
