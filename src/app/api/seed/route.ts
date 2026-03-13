@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
+import { auth } from '@/auth'
 
 export async function GET() {
+  const session = await auth()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const existingTemplate = await prisma.formTemplate.findFirst({
       where: { title: 'IMSA Questionnaire' }
@@ -65,7 +72,7 @@ export async function GET() {
 
     return NextResponse.json({ message: 'Seed successful! IMSA Questionnaire has been created.' })
   } catch (error) {
-    console.error('Seed error:', error)
+    logger.error('Seed error', { error: error instanceof Error ? error.message : 'Unknown error' })
     return NextResponse.json({ error: 'Failed to seed database' }, { status: 500 })
   }
 }

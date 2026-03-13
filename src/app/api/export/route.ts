@@ -3,8 +3,14 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { QuestionnaireService, PrismaQuestionnaireRepository } from '@/features/questionnaire'
 import { randomUUID } from 'crypto'
+import { auth } from '@/auth'
 
 export async function GET() {
+  const session = await auth()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const correlationId = randomUUID()
   const operation = 'export_stata_csv'
   const startTime = Date.now()
