@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowUp, ArrowDown, Check } from 'lucide-react';
 
-export default function Wizard({ template }: { template: any }) {
+import { ParsedFormTemplate } from '../types';
+
+export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   const router = useRouter();
   // Step -2 = Opening, Step -1 = Inisial collection screen, 0+ = questions
   const [step, setStep] = useState<'opening' | 'inisial' | number>('opening');
@@ -62,17 +64,17 @@ export default function Wizard({ template }: { template: any }) {
         formTemplateId: template.id,
         inisial: inisial.trim(),
         answers: Object.entries(answers).map(([questionId, rawVal]) => {
-          const q = questions.find((q: any) => q.id === questionId);
+          const q = questions.find((q) => q.id === questionId);
           let val = rawVal;
           if (q && q.type === 'radio') {
-            const options = JSON.parse(q.options || '[]');
+            const options = q.options || [];
             const idx = parseInt(rawVal, 10);
             if (!isNaN(idx) && options[idx]) {
               val = String(options[idx].value);
             }
           } else if (q && q.type === 'checkbox') {
             // Checkbox: rawVal is comma-separated indices like "0,2,5"
-            const options = JSON.parse(q.options || '[]');
+            const options = q.options || [];
             const indices = rawVal.split(',').filter(Boolean).map(Number);
             const labels = indices
               .filter(i => !isNaN(i) && options[i])
@@ -117,7 +119,7 @@ export default function Wizard({ template }: { template: any }) {
       
       // Auto-select radio options via number keys (1, 2, 3...)
       if ((currentQuestion?.type === 'radio') && /^[1-9]$/.test(e.key)) {
-        const options = JSON.parse(currentQuestion.options || '[]');
+        const options = currentQuestion.options || [];
         const idx = parseInt(e.key) - 1;
         if (options[idx]) {
           setAnswers(prev => ({ ...prev, [currentQuestion.id]: String(idx) }));
@@ -133,7 +135,7 @@ export default function Wizard({ template }: { template: any }) {
 
       // Toggle checkbox options via number keys
       if (currentQuestion?.type === 'checkbox' && /^[1-9]$/.test(e.key)) {
-        const options = JSON.parse(currentQuestion.options || '[]');
+        const options = currentQuestion.options || [];
         const idx = parseInt(e.key) - 1;
         if (options[idx]) {
           setAnswers(prev => {
@@ -174,10 +176,10 @@ export default function Wizard({ template }: { template: any }) {
     if (!currentQuestion) return null;
 
     if (currentQuestion.type === 'radio') {
-      const options = JSON.parse(currentQuestion.options || '[]');
+      const options = currentQuestion.options || [];
       return (
         <div style={styles.optionsList}>
-          {options.map((opt: any, index: number) => {
+          {options.map((opt, index) => {
             const isSelected = answers[currentQuestion.id] === String(index);
             return (
               <div 
@@ -208,12 +210,12 @@ export default function Wizard({ template }: { template: any }) {
         </div>
       );
     } else if (currentQuestion.type === 'checkbox') {
-      const options = JSON.parse(currentQuestion.options || '[]');
+      const options = currentQuestion.options || [];
       const selected = (answers[currentQuestion.id] || '').split(',').filter(Boolean);
       return (
         <div style={styles.optionsList}>
           <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '0 0 0.5rem 0' }}>Boleh centang lebih dari 1</p>
-          {options.map((opt: any, index: number) => {
+          {options.map((opt, index) => {
             const isSelected = selected.includes(String(index));
             return (
               <div

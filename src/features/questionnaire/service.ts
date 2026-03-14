@@ -1,5 +1,6 @@
 import { FormTemplate, Question, Answer, Response } from '@prisma/client'
-import { QuestionnaireRepository, FormTemplateWithQuestions, AnalyticsQuestion, ScoreSummary } from './repository'
+import { QuestionnaireRepository, AnalyticsQuestion, ScoreSummary } from './repository'
+import { FormTemplateWithQuestions, ParsedFormTemplate, ParsedQuestion, QuestionOption } from './types'
 
 export type SubmitAnswersInput = {
   formTemplateId: string
@@ -125,8 +126,19 @@ export function calculateImsaScore(
 export class QuestionnaireService {
   constructor(private readonly repository: QuestionnaireRepository) {}
 
-  async getTemplate(): Promise<FormTemplateWithQuestions | null> {
-    return this.repository.getTemplate()
+  async getTemplate(): Promise<ParsedFormTemplate | null> {
+    const template = await this.repository.getTemplate()
+    if (!template) return null
+
+    const parsedQuestions: ParsedQuestion[] = template.questions.map((q) => ({
+      ...q,
+      options: q.options ? JSON.parse(q.options) : null
+    }))
+
+    return {
+      ...template,
+      questions: parsedQuestions
+    }
   }
 
   async getTemplateWithResponses(): Promise<(FormTemplate & { questions: Question[]; responses: (Response & { answers: Answer[] })[] }) | null> {
@@ -198,6 +210,17 @@ export class QuestionnaireService {
   }
 
   /**
+   * Internal helper to escape CSV cells.
+   * Wraps in double quotes and escapes internal double quotes.
+   */
+  private escapeCSVCell(value: string | number | null | undefined): string {
+    if (value === null || value === undefined) return '""'
+    const str = String(value)
+    // Wrap in quotes and escape internal quotes by doubling them
+    return `"${str.replace(/"/g, '""')}"`
+  }
+
+  /**
    * Pure transformation — generates CSV content from raw data.
    * No I/O involved; easily testable.
    */
@@ -212,21 +235,22 @@ export class QuestionnaireService {
     }>
   }): string {
     const headers = ['response_id', 'inisial', 'total_score', 'created_at', ...template.questions.map((q) => q.variableName)]
+    const escapedHeaders = headers.map(h => this.escapeCSVCell(h)).join(',')
+
     const rows = template.responses.map(response => {
-      // Basic info
-      const row: (string | number)[] = [
-        response.id,
-        response.inisial || '',
-        response.totalScore === null ? '' : response.totalScore,
-        response.createdAt.toISOString()
+      const row: string[] = [
+        this.escapeCSVCell(response.id),
+        this.escapeCSVCell(response.inisial),
+        this.escapeCSVCell(response.totalScore),
+        this.escapeCSVCell(response.createdAt.toISOString())
       ]
       for (const question of template.questions) {
         const answer = response.answers.find((a) => a.questionId === question.id)
-        row.push(answer?.value ?? '')
+        row.push(this.escapeCSVCell(answer?.value))
       }
       return row.join(',')
     })
-    return [headers.join(','), ...rows].join('\n')
+    return [escapedHeaders, ...rows].join('\n')
   }
 
   async generateStataExport(): Promise<string> {

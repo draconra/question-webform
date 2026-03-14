@@ -1,8 +1,6 @@
 import { PrismaClient, FormTemplate, Question, Response, Answer } from '@prisma/client'
-
-export type FormTemplateWithQuestions = FormTemplate & {
-  questions: Question[]
-}
+import { FormTemplateWithQuestions } from './types'
+export type { FormTemplateWithQuestions }
 
 export type ResponseWithAnswers = Response & {
   answers: Answer[]
@@ -23,10 +21,6 @@ export type ScoreSummary = {
   date: Date
 }
 
-/**
- * Contract for questionnaire data access.
- * Abstracted so it can be mocked in unit tests without hitting a real database.
- */
 export interface QuestionnaireRepository {
   getTemplate(): Promise<FormTemplateWithQuestions | null>
   getTemplateWithResponses(): Promise<(FormTemplate & { questions: Question[]; responses: (Response & { answers: Answer[] })[] }) | null>

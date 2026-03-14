@@ -1,11 +1,12 @@
 import { signIn } from "@/auth"
 import { ShieldAlert, ArrowRight } from "lucide-react"
 
-export default function SignInPage({
+export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: { callbackUrl?: string; error?: string }
+  searchParams: Promise<{ callbackUrl?: string; error?: string }>
 }) {
+  const params = await searchParams;
   return (
     <div style={styles.container}>
       {/* Background decoration */}
@@ -21,7 +22,7 @@ export default function SignInPage({
           <p style={styles.subtitle}>Sign in to manage the IMSA Questionnaire</p>
         </div>
 
-        {searchParams.error === "CredentialsSignin" && (
+        {params.error === "CredentialsSignin" && (
           <div style={styles.errorBox}>
             Login failed. Please check your username and password.
           </div>
@@ -34,7 +35,7 @@ export default function SignInPage({
           }}
           style={styles.form}
         >
-          <input type="hidden" name="redirectTo" value={searchParams.callbackUrl || "/admin"} />
+          <input type="hidden" name="redirectTo" value={params.callbackUrl || "/admin"} />
           
           <div style={styles.inputGroup}>
             <label htmlFor="username" style={styles.label}>Username</label>
