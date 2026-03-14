@@ -429,9 +429,8 @@ const styles = {
   contentWrapper: {
     flex: 1,
     display: 'flex',
-    alignItems: 'center', // Center vertically for modern proportionality
-    justifyContent: 'center',
-    padding: '2rem',
+    flexDirection: 'column' as const, // Align in column to use margin auto for centering
+    padding: '1.5rem', // Slightly smaller padding for better mobile fit
     maxWidth: '900px',
     margin: '0 auto',
     width: '100%',
@@ -440,7 +439,8 @@ const styles = {
   },
   stepContainer: {
     width: '100%',
-    padding: '2rem 0',
+    margin: 'auto 0', // This centers vertically if there's space, but respects top if larger
+    padding: '2rem 0 6rem 0', // Extra bottom padding for floating navigation
   },
   questionBlock: {
     width: '100%',
@@ -457,6 +457,7 @@ const styles = {
     gap: '12px',
     textTransform: 'uppercase' as const,
     letterSpacing: '0.05em',
+    flexWrap: 'wrap' as const,
   },
   inisialBadge: {
     backgroundColor: '#eff6ff',
