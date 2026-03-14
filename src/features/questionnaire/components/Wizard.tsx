@@ -249,11 +249,14 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
     } else if (currentQuestion.type === 'number') {
       return (
         <input
+          id={`question-${currentQuestion.id}`}
+          name={`question-${currentQuestion.variableName}`}
           type="number"
           style={styles.textInput}
           value={answers[currentQuestion.id] || ''}
           onChange={(e) => setAnswers({ ...answers, [currentQuestion.id]: e.target.value })}
           placeholder="Ketik angka di sini..."
+          autoComplete="off"
           autoFocus
         />
       );
@@ -328,12 +331,15 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                   Contoh: <strong>AB</strong>, <strong>MR</strong>. 
                 </p>
                 <input
+                  id="inisial-input"
+                  name="inisial"
                   type="text"
                   style={styles.textInput}
                   value={inisial}
                   onChange={(e) => setInisial(e.target.value.toUpperCase())}
                   placeholder="Ketik inisial..."
                   maxLength={10}
+                  autoComplete="off"
                   autoFocus
                 />
                 {error && <p style={styles.errorText}>{error}</p>}
