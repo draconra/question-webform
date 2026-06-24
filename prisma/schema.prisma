@@ -82,9 +82,11 @@ model Question {
   options        String?      // JSON stringified array of options: [{label: "Menikah", value: 1}]
   orderIndex     Int
   required       Boolean      @default(true)
-  
+
   formTemplate   FormTemplate @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
   answers        Answer[]
+
+  @@index([formTemplateId, orderIndex])
 }
 
 model Response {
@@ -93,9 +95,13 @@ model Response {
   inisial        String?      // Patient identifier initial
   totalScore     Int?         // Computed IMSA total score (0–60)
   createdAt      DateTime     @default(now())
-  
+
   formTemplate   FormTemplate @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
   answers        Answer[]
+
+  @@index([inisial])
+  @@index([createdAt])
+  @@index([totalScore])
 }
 
 model Answer {

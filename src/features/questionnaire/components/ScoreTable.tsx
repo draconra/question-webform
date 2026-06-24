@@ -16,7 +16,8 @@ export default function ScoreTable() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/scores')
+    const controller = new AbortController()
+    fetch('/api/scores', { signal: controller.signal })
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch scores')
         return res.json()
@@ -25,10 +26,12 @@ export default function ScoreTable() {
         setScores(data)
         setLoading(false)
       })
-      .catch(() => {
+      .catch((err) => {
+        if (err.name === 'AbortError') return
         setError('Gagal memuat data skor')
         setLoading(false)
       })
+    return () => controller.abort()
   }, [])
 
   if (loading) return <div style={styles.loading}>Memuat skor…</div>

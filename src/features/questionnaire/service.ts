@@ -215,7 +215,12 @@ export class QuestionnaireService {
    */
   private escapeCSVCell(value: string | number | null | undefined): string {
     if (value === null || value === undefined) return '""'
-    const str = String(value)
+    let str = String(value)
+    // Neutralize CSV formula injection: prefix dangerous leading chars with single-quote
+    // Protects against malicious inisial values like "=cmd()" or "+cmd()" in Excel/Stata
+    if (/^[=+\-@\t\r]/.test(str)) {
+      str = "'" + str
+    }
     // Wrap in quotes and escape internal quotes by doubling them
     return `"${str.replace(/"/g, '""')}"`
   }

@@ -24,11 +24,18 @@
 .DS_Store
 *.pem
 
+# sqlite (legacy — project now uses postgresql)
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+firebase-debug.log*
 
 # env files (can opt-in for committing if needed)
 .env*

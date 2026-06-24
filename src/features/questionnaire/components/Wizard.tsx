@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowUp, ArrowDown, Check } from 'lucide-react';
@@ -20,6 +20,9 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
 
   // Track scroll direction for animations
   const [direction, setDirection] = useState(1);
+
+  // Ref for auto-advance timer — cleared on unmount / before next advance
+  const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentStep = step === 'opening' ? -2 : step === 'inisial' ? -1 : (step as number);
   const progressPercentage = (step === 'opening' || step === 'inisial') ? 0 : ((currentStep + 1) / questions.length) * 100;
@@ -116,19 +119,24 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
         e.preventDefault();
         handleNext();
       }
-      
+
       // Auto-select radio options via number keys (1, 2, 3...)
       if ((currentQuestion?.type === 'radio') && /^[1-9]$/.test(e.key)) {
         const options = currentQuestion.options || [];
         const idx = parseInt(e.key) - 1;
         if (options[idx]) {
-          setAnswers(prev => ({ ...prev, [currentQuestion.id]: String(idx) }));
+          const qId = currentQuestion.id;
+          setAnswers(prev => ({ ...prev, [qId]: String(idx) }));
           // Auto-advance after small delay (except on the last question)
-          setTimeout(() => {
-            if (currentStep < questions.length - 1) {
-              setDirection(1);
-              setStep(currentStep + 1);
-            }
+          if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+          advanceTimerRef.current = setTimeout(() => {
+            setStep(prev => {
+              if (typeof prev === 'number' && prev < questions.length - 1) {
+                setDirection(1);
+                return prev + 1;
+              }
+              return prev;
+            });
           }, 400);
         }
       }
@@ -138,22 +146,27 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
         const options = currentQuestion.options || [];
         const idx = parseInt(e.key) - 1;
         if (options[idx]) {
+          const qId = currentQuestion.id;
           setAnswers(prev => {
-            const current = prev[currentQuestion.id] || '';
+            const current = prev[qId] || '';
             const selected = current.split(',').filter(Boolean);
             const idxStr = String(idx);
             const newSelected = selected.includes(idxStr)
               ? selected.filter(s => s !== idxStr)
               : [...selected, idxStr];
-            return { ...prev, [currentQuestion.id]: newSelected.join(',') };
+            return { ...prev, [qId]: newSelected.join(',') };
           });
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [step, inisial, answers, isSubmitting]);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, inisial, isSubmitting]);
 
   const variants = {
     enter: (direction: number) => ({
@@ -182,16 +195,22 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
           {options.map((opt, index) => {
             const isSelected = answers[currentQuestion.id] === String(index);
             return (
-              <div 
+              <div
                 key={index}
                 onClick={() => {
-                  setAnswers({ ...answers, [currentQuestion.id]: String(index) });
+                  const qId = currentQuestion.id;
+                  const val = String(index);
+                  setAnswers(prev => ({ ...prev, [qId]: val }));
                   // Auto-advance on click (except on the last question)
-                  setTimeout(() => {
-                    if (currentStep < questions.length - 1) {
-                      setDirection(1);
-                      setStep(currentStep + 1);
-                    }
+                  if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
+                  advanceTimerRef.current = setTimeout(() => {
+                    setStep(prev => {
+                      if (typeof prev === 'number' && prev < questions.length - 1) {
+                        setDirection(1);
+                        return prev + 1;
+                      }
+                      return prev;
+                    });
                   }, 400);
                 }}
                 style={{
@@ -221,11 +240,16 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
               <div
                 key={index}
                 onClick={() => {
+                  const qId = currentQuestion.id;
                   const idxStr = String(index);
-                  const newSelected = isSelected
-                    ? selected.filter(s => s !== idxStr)
-                    : [...selected, idxStr];
-                  setAnswers({ ...answers, [currentQuestion.id]: newSelected.join(',') });
+                  setAnswers(prev => {
+                    const cur = prev[qId] || '';
+                    const sel = cur.split(',').filter(Boolean);
+                    const next = sel.includes(idxStr)
+                      ? sel.filter(s => s !== idxStr)
+                      : [...sel, idxStr];
+                    return { ...prev, [qId]: next.join(',') };
+                  });
                 }}
                 style={{
                   ...styles.optionCard,
@@ -254,7 +278,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
           type="number"
           style={styles.textInput}
           value={answers[currentQuestion.id] || ''}
-          onChange={(e) => setAnswers({ ...answers, [currentQuestion.id]: e.target.value })}
+          onChange={(e) => { const qId = currentQuestion.id; const v = e.target.value; setAnswers(prev => ({ ...prev, [qId]: v })); }}
           placeholder="Ketik angka di sini..."
           autoComplete="off"
           autoFocus
@@ -266,7 +290,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
           type="text"
           style={styles.textInput}
           value={answers[currentQuestion.id] || ''}
-          onChange={(e) => setAnswers({ ...answers, [currentQuestion.id]: e.target.value })}
+          onChange={(e) => { const qId = currentQuestion.id; const v = e.target.value; setAnswers(prev => ({ ...prev, [qId]: v })); }}
           placeholder="Ketik jawaban di sini..."
           autoFocus
         />

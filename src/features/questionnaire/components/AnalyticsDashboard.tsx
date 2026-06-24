@@ -88,17 +88,21 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    const controller = new AbortController()
     setLoading(true)
-    fetch(`/api/analytics?inisial=${encodeURIComponent(inisial)}`)
+    setError(null)
+    fetch(`/api/analytics?inisial=${encodeURIComponent(inisial)}`, { signal: controller.signal })
       .then((res) => res.json())
       .then((data) => {
         setQuestions(data)
         setLoading(false)
       })
-      .catch(() => {
+      .catch((err) => {
+        if (err.name === 'AbortError') return
         setError('Gagal memuat data analitik')
         setLoading(false)
       })
+    return () => controller.abort()
   }, [inisial])
 
   if (loading) {
@@ -123,7 +127,7 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
 
   return (
     <div style={styles.grid}>
-      {questions.map((q) => (
+      {questionsWithAnswers.map((q) => (
         <div key={q.id} style={styles.card}>
           <p style={styles.varName}>{q.variableName}</p>
           <h3 style={styles.prompt}>{q.prompt}</h3>
