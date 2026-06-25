@@ -7,6 +7,8 @@ export type FormTemplateWithQuestions = FormTemplate & {
 export type QuestionOption = {
   label: string
   value: string | number
+  /** When true, selecting this option shows a required free-text companion input. */
+  requiresText?: boolean
 }
 
 export type ParsedQuestion = Omit<Question, 'options'> & {

@@ -64,28 +64,36 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Guru', value: 5 },
       { label: 'Petani', value: 6 },
       { label: 'Nelayan', value: 7 },
-      { label: 'Lainnya', value: 8 },
+      { label: 'Lainnya', value: 8, requiresText: true },
     ],
     orderIndex: 5,
     required: true,
+  },
+  // Companion: pekerjaan Lainnya → never shown as standalone step
+  {
+    variableName: 'pekerjaan_lainnya',
+    type: 'text',
+    prompt: 'Pekerjaan lainnya (sebutkan)',
+    orderIndex: 6,
+    required: false,
   },
   {
     variableName: 'status_bpjs',
     type: 'radio',
     prompt: 'Status Pembiayaan BPJS',
     options: [
-      { label: 'PBI', value: 1 },
+      { label: 'PBI/dibayarkan Pemerintah', value: 1 },
       { label: 'Non-PBI', value: 2 },
       { label: 'Mandiri/Tidak memiliki BPJS', value: 3 },
     ],
-    orderIndex: 6,
+    orderIndex: 7,
     required: true,
   },
   {
     variableName: 'jumlah_penyakit_kronis',
     type: 'number',
     prompt: 'Jumlah Penyakit Kronis yang dimiliki',
-    orderIndex: 7,
+    orderIndex: 8,
     required: true,
   },
   {
@@ -101,23 +109,31 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Kanker', value: 'kanker' },
       { label: 'Penyakit Sendi', value: 'penyakit_sendi' },
       { label: 'Penyakit Paru', value: 'penyakit_paru' },
-      { label: 'Lainnya', value: 'lainnya' },
+      { label: 'Lainnya', value: 'lainnya', requiresText: true },
     ],
-    orderIndex: 8,
+    orderIndex: 9,
     required: true,
+  },
+  // Companion: jenis_penyakit_kronis Lainnya → never shown as standalone step
+  {
+    variableName: 'jenis_penyakit_kronis_lainnya',
+    type: 'text',
+    prompt: 'Jenis penyakit kronis lainnya (sebutkan)',
+    orderIndex: 10,
+    required: false,
   },
   {
     variableName: 'durasi_penyakit_kronis',
     type: 'number',
     prompt: 'Durasi Penyakit Kronis (dalam tahun)',
-    orderIndex: 9,
+    orderIndex: 11,
     required: true,
   },
   {
     variableName: 'jumlah_obat_rutin',
     type: 'number',
     prompt: 'Jumlah Obat yang dikonsumsi secara rutin setiap harinya',
-    orderIndex: 10,
+    orderIndex: 12,
     required: true,
   },
 
@@ -126,21 +142,27 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
     variableName: 'frekuensi_kunjungan_fktp',
     type: 'number',
     prompt: 'Rata-rata frekuensi kunjungan FKTP per bulan, dalam 1 tahun terakhir',
-    orderIndex: 11,
+    orderIndex: 13,
     required: true,
   },
   {
+    // Changed from number to radio buckets per PDF
     variableName: 'frekuensi_kunjungan_fktl',
-    type: 'number',
-    prompt: 'Rata-rata frekuensi kunjungan FKTL (RS) per bulan, dalam 1 tahun terakhir',
-    orderIndex: 12,
+    type: 'radio',
+    prompt: 'Rata-rata frekuensi kunjungan FKTL (RS) dalam 1 tahun terakhir',
+    options: [
+      { label: '1 bulan sekali', value: 1 },
+      { label: '2 kali atau lebih per bulan', value: 2 },
+      { label: '3 bulan sekali atau lebih jarang', value: 3 },
+    ],
+    orderIndex: 14,
     required: true,
   },
   {
     variableName: 'riwayat_rawat_inap',
     type: 'number',
     prompt: 'Riwayat rawat inap dalam 1 tahun terakhir (jumlah kali)',
-    orderIndex: 13,
+    orderIndex: 15,
     required: true,
   },
 
@@ -150,12 +172,12 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
     type: 'radio',
     prompt: 'PRA-1: Bagaimana tingkat pemahaman Anda terhadap bahasa di negara tempat Anda tinggal?',
     options: [
-      { label: 'Penutur asli', value: 0 },
+      { label: 'Pengetahuan bahasa mahir', value: 0 },
       { label: 'Pengetahuan bahasa baik', value: 1 },
-      { label: 'Pengetahuan bahasa menengah', value: 2 },
+      { label: 'Pengetahuan bahasa cukup', value: 2 },
       { label: 'Pengetahuan bahasa buruk', value: 3 },
     ],
-    orderIndex: 14,
+    orderIndex: 16,
     required: true,
   },
   {
@@ -167,7 +189,45 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Saya mengisi sendiri meskipun dibantu orang lain', value: 2 },
       { label: 'Orang lain mengisi setelah berkonsultasi dengan saya', value: 3 },
     ],
-    orderIndex: 15,
+    orderIndex: 17,
+    required: true,
+  },
+  {
+    // New: PRA-2 helper — who was the companion (if any)?
+    variableName: 'pra_2_pendamping',
+    type: 'radio',
+    prompt: 'PRA-2 (lanjutan): Jika ada yang membantu pengisian, siapa pendamping Anda?',
+    options: [
+      { label: 'Tidak berlaku (saya mengisi sendiri)', value: 0 },
+      { label: 'Anggota Keluarga/Pendamping/Teman', value: 1 },
+      { label: 'Perawat', value: 2 },
+      { label: 'Peneliti', value: 3 },
+      { label: 'Lainnya', value: 4, requiresText: true },
+    ],
+    orderIndex: 18,
+    required: true,
+  },
+  // Companion: pra_2_pendamping Lainnya → never shown as standalone step
+  {
+    variableName: 'pra_2_pendamping_lainnya',
+    type: 'text',
+    prompt: 'Pendamping lainnya (sebutkan)',
+    orderIndex: 19,
+    required: false,
+  },
+
+  // --- Tambahan ---
+  {
+    // New: Tamb.1 — routine daily medication count (unscored)
+    variableName: 'tamb_1_minum_obat',
+    type: 'radio',
+    prompt: 'Tamb.1: Berapa jenis obat yang Anda minum secara rutin setiap harinya?',
+    options: [
+      { label: 'Tidak ada obat yang diminum secara rutin', value: 1 },
+      { label: 'Satu jenis obat', value: 2 },
+      { label: 'Beberapa jenis obat (lebih dari satu)', value: 3 },
+    ],
+    orderIndex: 20,
     required: true,
   },
 
@@ -182,7 +242,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Ya, selama lebih dari 3 bulan', value: 1 },
       { label: 'Ya, beberapa periode singkat masalah fisik dalam 5 tahun', value: 1 },
     ],
-    orderIndex: 16,
+    orderIndex: 21,
     required: true,
   },
   {
@@ -194,7 +254,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Ya, satu penyakit kronis', value: 2 },
       { label: 'Ya, beberapa penyakit kronis', value: 3 },
     ],
-    orderIndex: 17,
+    orderIndex: 22,
     required: true,
   },
 
@@ -210,7 +270,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Setelah banyak pemeriksaan, masalah saya teridentifikasi', value: 2 },
       { label: 'Meskipun serangkaian pemeriksaan, penyebab masalah saya tidak pernah terdiagnosis', value: 3 },
     ],
-    orderIndex: 18,
+    orderIndex: 23,
     required: true,
   },
 
@@ -225,7 +285,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Cukup dipengaruhi masalah fisik', value: 2 },
       { label: 'Sangat dipengaruhi masalah fisik', value: 3 },
     ],
-    orderIndex: 19,
+    orderIndex: 24,
     required: true,
   },
 
@@ -241,7 +301,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Dokter saya mempunyai banyak keraguan tentang penyebab masalah saya', value: 3 },
       { label: 'Dokter saya masih harus mencari tahu penyebab masalah fisik saya', value: 3 },
     ],
-    orderIndex: 20,
+    orderIndex: 25,
     required: true,
   },
   {
@@ -255,7 +315,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Saya mempunyai banyak keraguan tentang kelayakan pengobatan', value: 3 },
       { label: 'Pengobatan yang tepat masih belum ditemukan', value: 3 },
     ],
-    orderIndex: 21,
+    orderIndex: 26,
     required: true,
   },
 
@@ -270,7 +330,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Saya sering mengalami kesulitan yang sering menyebabkan ketegangan dengan orang lain', value: 2 },
       { label: 'Saya selalu mengalami kesulitan dalam situasi penuh tekanan dan mereka membuat saya tegang', value: 3 },
     ],
-    orderIndex: 22,
+    orderIndex: 27,
     required: true,
   },
 
@@ -285,7 +345,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Ya dan itu mempengaruhi kehidupan sehari-hari saya', value: 2 },
       { label: 'Ya dan masalah ini telah atau masih berdampak jangka panjang pada kehidupan sehari-hari saya', value: 3 },
     ],
-    orderIndex: 23,
+    orderIndex: 28,
     required: true,
   },
 
@@ -300,7 +360,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Ya, sulit, kadang saya bisa, kadang tidak', value: 2 },
       { label: 'Ya, terlalu sulit, sering kali saya tidak berhasil', value: 3 },
     ],
-    orderIndex: 24,
+    orderIndex: 29,
     required: true,
   },
 
@@ -315,11 +375,11 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Ya, masalah sedang yang sedikit mempengaruhi aktivitas sehari-hari', value: 2 },
       { label: 'Ya, masalah parah yang sangat mempengaruhi aktivitas sehari-hari', value: 3 },
     ],
-    orderIndex: 25,
+    orderIndex: 30,
     required: true,
   },
 
-  // --- Historis: Pekerjaan and Waktu Luang ---
+  // --- Historis: Pekerjaan dan Waktu Luang ---
   {
     variableName: 'hist_9a_memiliki_pekerjaan',
     type: 'radio',
@@ -328,12 +388,11 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Ya', value: 1 },
       { label: 'Tidak', value: 0 },
     ],
-    orderIndex: 26,
+    orderIndex: 31,
     required: true,
   },
   {
     // Only scored when 9a = Tidak. Value 0 = functioning group; value 1 = non-functioning.
-    // Select "Tidak berlaku" if still employed (value 0, treated same as functioning group).
     variableName: 'hist_9b_alasan_tidak_bekerja',
     type: 'radio',
     prompt: '9b: Jika Anda menjawab Tidak pada 9a, sebutkan alasannya (pilih "Tidak berlaku" jika masih bekerja)',
@@ -345,7 +404,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Saya penyandang disabilitas (cacat fisik/mental)', value: 1 },
       { label: 'Saya cuti sakit lebih dari 6 bulan', value: 1 },
     ],
-    orderIndex: 27,
+    orderIndex: 32,
     required: true,
   },
   {
@@ -356,7 +415,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Ya', value: 1 },
       { label: 'Tidak', value: 0 },
     ],
-    orderIndex: 28,
+    orderIndex: 33,
     required: true,
   },
 
@@ -371,7 +430,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Sulit bagi saya untuk memulai atau mempertahankan hubungan atau pertemanan dengan orang lain', value: 2 },
       { label: 'Hubungan atau pertemanan sering kali memburuk menjadi pertengkaran dan konflik', value: 3 },
     ],
-    orderIndex: 29,
+    orderIndex: 34,
     required: true,
   },
 
@@ -386,7 +445,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Penyesuaian diperlukan, namun tidak segera', value: 2 },
       { label: 'Diperlukan penyesuaian segera', value: 3 },
     ],
-    orderIndex: 30,
+    orderIndex: 35,
     required: true,
   },
 
@@ -402,7 +461,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Bantuan yang saya dapatkan sangat terbatas', value: 2 },
       { label: 'Tidak ada bantuan yang tersedia', value: 3 },
     ],
-    orderIndex: 31,
+    orderIndex: 36,
     required: true,
   },
 
@@ -417,7 +476,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Ya, sering mengalami beberapa masalah ini', value: 2 },
       { label: 'Ya, beberapa masalah ini merupakan masalah besar bagi saya', value: 3 },
     ],
-    orderIndex: 32,
+    orderIndex: 37,
     required: true,
   },
 
@@ -432,13 +491,13 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Saya telah berganti dokter dan tenaga kesehatan karena pengalaman negatif', value: 2 },
       { label: 'Saya sering berganti dokter dan tenaga kesehatan karena pengalaman negatif atau kurangnya kepercayaan', value: 3 },
     ],
-    orderIndex: 33,
+    orderIndex: 38,
     required: true,
   },
 
   // --- Saat ini: Pengaturan Layanan (Q15) ---
   // Multi-select; option values are letter codes used by the scoring engine.
-  // Score rule: a/b/f/g=0 | c/d/e=1 | (c|d)&e=2 | h/i/j=3
+  // Score rule: a/b/f/g/k=0 | c/d/e=1 | (c|d)&e=2 | h/i/j=3
   {
     variableName: 'saat_ini_15_pengaturan_layanan',
     type: 'checkbox',
@@ -447,16 +506,26 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Saya tidak menerima perawatan apa pun', value: 'a' },
       { label: 'Dokter umum', value: 'b' },
       { label: 'Dokter Spesialis Kedokteran Keluarga Layanan Primer (Sp.KKLP)', value: 'c' },
-      { label: 'Satu dokter spesialis di RS (seperti: spesialis paru, spesialis jantung, dll)', value: 'd' },
+      { label: 'Satu dokter spesialis di RS (seperti: spesialis paru, spesialis jantung, spesialis bedah, dll)', value: 'd' },
       { label: 'Lebih dari satu dokter spesialis di RS', value: 'e' },
       { label: 'Dokter spesialis masalah kejiwaan (psikiater, psikolog, spesialis penyalahgunaan zat)', value: 'f' },
       { label: 'Pekerja sosial (kader, petugas dinas sosial)', value: 'g' },
       { label: 'Perawat rumah', value: 'h' },
       { label: 'Saat ini saya dirawat di rumah sakit', value: 'i' },
       { label: 'Saat ini saya dirawat di rumah sakit jiwa', value: 'j' },
+      { label: 'Lainnya (sebutkan)', value: 'k', requiresText: true },
     ],
-    orderIndex: 34,
+    orderIndex: 39,
     required: true,
+  },
+  // Companion: Q15 Lainnya → never shown as standalone step
+  // variableName strips to 'saat_ini_15_pengaturan_layanan' when '_lainnya' suffix removed
+  {
+    variableName: 'saat_ini_15_pengaturan_layanan_lainnya',
+    type: 'text',
+    prompt: 'Layanan kesehatan lainnya (sebutkan)',
+    orderIndex: 40,
+    required: false,
   },
 
   // --- Saat ini: Koordinasi Perawatan ---
@@ -471,7 +540,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Tidak bekerja sama dengan baik, sehingga kadang-kadang menimbulkan masalah', value: 2 },
       { label: 'Dokter dan tenaga kesehatan saya tidak bekerja sama', value: 3 },
     ],
-    orderIndex: 35,
+    orderIndex: 41,
     required: true,
   },
 
@@ -486,7 +555,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Dalam 6 bulan ke depan saya memperkirakan kesehatan fisik saya akan memburuk', value: 2 },
       { label: 'Dalam 6 bulan ke depan, saya memperkirakan kesehatan fisik saya akan sangat memburuk', value: 3 },
     ],
-    orderIndex: 36,
+    orderIndex: 42,
     required: true,
   },
 
@@ -501,7 +570,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Dalam 6 bulan ke depan, saya memperkirakan kesehatan mental saya akan memburuk', value: 2 },
       { label: 'Dalam 6 bulan ke depan, saya memperkirakan kesehatan mental saya akan sangat memburuk', value: 3 },
     ],
-    orderIndex: 37,
+    orderIndex: 43,
     required: true,
   },
 
@@ -516,7 +585,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Dalam 6 bulan ke depan diperlukan perubahan kondisi kehidupan', value: 2 },
       { label: 'Perubahan terhadap kondisi kehidupan diperlukan segera', value: 3 },
     ],
-    orderIndex: 38,
+    orderIndex: 44,
     required: true,
   },
 
@@ -531,7 +600,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Saya perkirakan dalam 6 bulan ke depan, kebutuhan perawatan saya akan meningkat sangat banyak', value: 2 },
       { label: 'Saya perkirakan dalam 6 bulan ke depan, kebutuhan perawatan saya akan meningkat sangat banyak dan membutuhkan layanan tambahan', value: 3 },
     ],
-    orderIndex: 39,
+    orderIndex: 45,
     required: true,
   },
 ];

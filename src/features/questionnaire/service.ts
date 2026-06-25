@@ -19,7 +19,7 @@ export type ValidationResult =
  *  - Simple domains: the answer value IS the domain score (0–3)
  *  - Composite domain 1  (1a + 1b): max of the two
  *  - Composite domain 4  (4a + 4b): max of the two
- *  - Composite domain 9  (9a + 9c): determined by employment + leisure activity status
+ *  - Composite domain 9  (9a + 9b + 9c): determined by employment + leisure activity status
  *
  * Variable-name to domain mapping (from the seed):
  *  hist_1a_masalah_fisik + hist_1b_penyakit_kronis  → domain 1  (Kronik biologis)
