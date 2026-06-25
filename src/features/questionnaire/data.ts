@@ -323,7 +323,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
   {
     variableName: 'hist_9a_memiliki_pekerjaan',
     type: 'radio',
-    prompt: '9a: Apakah Anda mempunyai pekerjaan?',
+    prompt: '9a: Apakah saat ini Anda mempunyai pekerjaan tetap?',
     options: [
       { label: 'Ya', value: 1 },
       { label: 'Tidak', value: 0 },
@@ -332,14 +332,31 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
     required: true,
   },
   {
+    // Only scored when 9a = Tidak. Value 0 = functioning group; value 1 = non-functioning.
+    // Select "Tidak berlaku" if still employed (value 0, treated same as functioning group).
+    variableName: 'hist_9b_alasan_tidak_bekerja',
+    type: 'radio',
+    prompt: '9b: Jika Anda menjawab Tidak pada 9a, sebutkan alasannya (pilih "Tidak berlaku" jika masih bekerja)',
+    options: [
+      { label: 'Tidak berlaku (saya masih bekerja)', value: 0 },
+      { label: 'Saya adalah seorang pelajar/mahasiswa', value: 0 },
+      { label: 'Saya sudah pensiun', value: 0 },
+      { label: 'Saya mengurus rumah tangga dan lain-lain', value: 0 },
+      { label: 'Saya penyandang disabilitas (cacat fisik/mental)', value: 1 },
+      { label: 'Saya cuti sakit lebih dari 6 bulan', value: 1 },
+    ],
+    orderIndex: 27,
+    required: true,
+  },
+  {
     variableName: 'hist_9c_kegiatan_luang',
     type: 'radio',
-    prompt: '9c: Apakah Anda mempunyai kegiatan di waktu luang seperti menjadi sukarelawan, kursus, olah raga, klub?',
+    prompt: '9c: Apakah Anda mempunyai kegiatan di waktu luang seperti menjadi sukarelawan, mengikuti kursus, olahraga, klub/komunitas?',
     options: [
       { label: 'Ya', value: 1 },
       { label: 'Tidak', value: 0 },
     ],
-    orderIndex: 27,
+    orderIndex: 28,
     required: true,
   },
 
@@ -347,14 +364,14 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
   {
     variableName: 'hist_10_hubungan_sosial',
     type: 'radio',
-    prompt: '10: Bagaimana biasanya Anda berhubungan dengan orang lain?',
+    prompt: '10: Bagaimana biasanya Anda bersosialisasi dengan orang lain?',
     options: [
-      { label: 'Saya memiliki cukup banyak kontak dengan orang lain and bersosialisasi dengan baik', value: 0 },
-      { label: 'Saya mempunyai kontak dengan orang lain, meskipun kadang-kadang menjadi tegang', value: 1 },
-      { label: 'Sulit bagi saya untuk memulai atau mempertahankan kontak atau persahabatan', value: 2 },
-      { label: 'Kontak atau persahabatan sering memburuk menjadi pertengkaran and konflik', value: 3 },
+      { label: 'Saya bersosialisasi dengan orang lain dengan baik', value: 0 },
+      { label: 'Saya bersosialisasi dengan orang lain, meskipun kadang-kadang timbul masalah', value: 1 },
+      { label: 'Sulit bagi saya untuk memulai atau mempertahankan hubungan atau pertemanan dengan orang lain', value: 2 },
+      { label: 'Hubungan atau pertemanan sering kali memburuk menjadi pertengkaran dan konflik', value: 3 },
     ],
-    orderIndex: 28,
+    orderIndex: 29,
     required: true,
   },
 
@@ -362,14 +379,14 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
   {
     variableName: 'saat_ini_11_stabilitas_tempat_tinggal',
     type: 'radio',
-    prompt: '11: Apakah situasi kehidupan di rumah Anda memuaskan? Atau apakah diperlukan penyesuaian?',
+    prompt: '11: Apakah situasi di rumah Anda dirasa nyaman (dalam kondisi baik)? Atau apakah diperlukan berbagai penyesuaian?',
     options: [
       { label: 'Tidak perlu penyesuaian, saya dapat mengatur situasi rumah saya', value: 0 },
-      { label: 'Tidak diperlukan penyesuaian, karena dukungan dari orang lain sudah cukup', value: 1 },
+      { label: 'Tidak diperlukan penyesuaian, karena dukungan dan perhatian dari orang lain sudah cukup', value: 1 },
       { label: 'Penyesuaian diperlukan, namun tidak segera', value: 2 },
       { label: 'Diperlukan penyesuaian segera', value: 3 },
     ],
-    orderIndex: 29,
+    orderIndex: 30,
     required: true,
   },
 
@@ -385,7 +402,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
       { label: 'Bantuan yang saya dapatkan sangat terbatas', value: 2 },
       { label: 'Tidak ada bantuan yang tersedia', value: 3 },
     ],
-    orderIndex: 30,
+    orderIndex: 31,
     required: true,
   },
 
@@ -393,14 +410,14 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
   {
     variableName: 'hist_13_akses_perawatan',
     type: 'radio',
-    prompt: '13: Apakah Anda mengalami kesulitan dalam mendapatkan layanan yang dibutuhkan karena jarak, asuransi, bahasa, atau perbedaan budaya?',
+    prompt: '13: Apakah Anda mengalami kesulitan dalam mendapatkan layanan kesehatan yang Anda perlukan karena tinggal terlalu jauh, tidak mempunyai asuransi kesehatan (BPJS/KIS/JKN/ASKES/swasta), atau terdapat perbedaan bahasa/budaya?',
     options: [
       { label: 'Tidak, ini bukan masalah bagi saya', value: 0 },
       { label: 'Ya, saya kadang-kadang mengalami beberapa masalah ini', value: 1 },
-      { label: 'Ya, beberapa masalah ini sering saya alami', value: 2 },
-      { label: 'Ya, beberapa di antaranya adalah masalah besar bagi saya', value: 3 },
+      { label: 'Ya, sering mengalami beberapa masalah ini', value: 2 },
+      { label: 'Ya, beberapa masalah ini merupakan masalah besar bagi saya', value: 3 },
     ],
-    orderIndex: 31,
+    orderIndex: 32,
     required: true,
   },
 
@@ -408,14 +425,37 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
   {
     variableName: 'hist_14_pengalaman_pengobatan',
     type: 'radio',
-    prompt: '14: Bagaimana pengalaman Anda dengan dokter and penyedia layanan kesehatan?',
+    prompt: '14: Bagaimana pengalaman Anda berhubungan dengan Dokter dan Tenaga kesehatan dalam 5 tahun terakhir?',
     options: [
-      { label: 'Saya tidak pernah mempunyai masalah dengan dokter and penyedia layanan kesehatan', value: 0 },
-      { label: 'Saya atau seseorang yang dekat saya mempunyai pengalaman negatif', value: 1 },
-      { label: 'Saya telah berganti dokter karena pengalaman negatif', value: 2 },
-      { label: 'Saya sering berganti dokter karena pengalaman negatif atau kurangnya kepercayaan', value: 3 },
+      { label: 'Saya tidak pernah mempunyai masalah dengan dokter dan tenaga kesehatan', value: 0 },
+      { label: 'Saya atau seseorang yang dekat dengan saya mempunyai pengalaman negatif dengan dokter dan tenaga kesehatan', value: 1 },
+      { label: 'Saya telah berganti dokter dan tenaga kesehatan karena pengalaman negatif', value: 2 },
+      { label: 'Saya sering berganti dokter dan tenaga kesehatan karena pengalaman negatif atau kurangnya kepercayaan', value: 3 },
     ],
-    orderIndex: 32,
+    orderIndex: 33,
+    required: true,
+  },
+
+  // --- Saat ini: Pengaturan Layanan (Q15) ---
+  // Multi-select; option values are letter codes used by the scoring engine.
+  // Score rule: a/b/f/g=0 | c/d/e=1 | (c|d)&e=2 | h/i/j=3
+  {
+    variableName: 'saat_ini_15_pengaturan_layanan',
+    type: 'checkbox',
+    prompt: '15: Siapa saja tenaga medis/kesehatan yang merawat Anda saat ini? (Jawaban boleh lebih dari 1)',
+    options: [
+      { label: 'Saya tidak menerima perawatan apa pun', value: 'a' },
+      { label: 'Dokter umum', value: 'b' },
+      { label: 'Dokter Spesialis Kedokteran Keluarga Layanan Primer (Sp.KKLP)', value: 'c' },
+      { label: 'Satu dokter spesialis di RS (seperti: spesialis paru, spesialis jantung, dll)', value: 'd' },
+      { label: 'Lebih dari satu dokter spesialis di RS', value: 'e' },
+      { label: 'Dokter spesialis masalah kejiwaan (psikiater, psikolog, spesialis penyalahgunaan zat)', value: 'f' },
+      { label: 'Pekerja sosial (kader, petugas dinas sosial)', value: 'g' },
+      { label: 'Perawat rumah', value: 'h' },
+      { label: 'Saat ini saya dirawat di rumah sakit', value: 'i' },
+      { label: 'Saat ini saya dirawat di rumah sakit jiwa', value: 'j' },
+    ],
+    orderIndex: 34,
     required: true,
   },
 
@@ -423,30 +463,30 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
   {
     variableName: 'saat_ini_16_koordinasi_perawatan',
     type: 'radio',
-    prompt: '16: Sejauh mana dokter and penyedia layanan kesehatan Anda bekerja sama?',
+    prompt: '16: Sejauh mana dokter dan tenaga kesehatan (perawat/bidan/petugas laboratorium/petugas radiologi/fisioterapi) yang melayani Anda bisa bekerja sama?',
     options: [
-      { label: 'Saya tidak menerima perawatan atau hanya dari satu dokter', value: 0 },
-      { label: 'Dokter and penyedia layanan kesehatan saya bekerja sama dengan baik', value: 0 },
-      { label: 'Bekerja sama, namun terkadang perlu lebih banyak komunikasi', value: 1 },
-      { label: 'Tidak bekerja sama dengan baik, kadang menimbulkan masalah', value: 2 },
-      { label: 'Dokter and penyedia layanan kesehatan saya tidak bekerja sama', value: 3 },
+      { label: 'Saya tidak menerima perawatan atau perawatan saya hanya diberikan oleh satu dokter', value: 0 },
+      { label: 'Dokter dan tenaga kesehatan saya bekerja sama dengan baik', value: 0 },
+      { label: 'Bekerja sama, namun terkadang dibutuhkan lebih banyak komunikasi', value: 1 },
+      { label: 'Tidak bekerja sama dengan baik, sehingga kadang-kadang menimbulkan masalah', value: 2 },
+      { label: 'Dokter dan tenaga kesehatan saya tidak bekerja sama', value: 3 },
     ],
-    orderIndex: 33,
+    orderIndex: 35,
     required: true,
   },
 
-  // --- Prognosis: Komplikasi and Ancaman ---
+  // --- Prognosis: Komplikasi dan Ancaman ---
   {
     variableName: 'prog_17_perkiraan_fisik',
     type: 'radio',
-    prompt: '17: Dalam 6 bulan ke depan, apakah Anda memperkirakan kesehatan fisik Anda akan berubah?',
+    prompt: '17: Bagaimana Anda memperkirakan perubahan kesehatan fisik Anda dalam 6 bulan ke depan?',
     options: [
-      { label: 'Saya berharap kesehatan fisik saya tetap sama atau membaik', value: 0 },
-      { label: 'Saya memperkirakan kesehatan fisik saya akan sedikit memburuk', value: 1 },
-      { label: 'Saya memperkirakan kesehatan fisik saya akan memburuk', value: 2 },
-      { label: 'Saya memperkirakan kesehatan fisik saya akan semakin memburuk', value: 3 },
+      { label: 'Dalam 6 bulan ke depan saya memperkirakan kesehatan fisik saya tetap sama atau membaik', value: 0 },
+      { label: 'Dalam 6 bulan ke depan, saya memperkirakan kesehatan fisik saya hanya akan sedikit memburuk', value: 1 },
+      { label: 'Dalam 6 bulan ke depan saya memperkirakan kesehatan fisik saya akan memburuk', value: 2 },
+      { label: 'Dalam 6 bulan ke depan, saya memperkirakan kesehatan fisik saya akan sangat memburuk', value: 3 },
     ],
-    orderIndex: 34,
+    orderIndex: 36,
     required: true,
   },
 
@@ -454,14 +494,14 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
   {
     variableName: 'prog_18_perkiraan_mental',
     type: 'radio',
-    prompt: '18: Dalam 6 bulan ke depan, apakah Anda memperkirakan kesejahteraan psikologis Anda akan berubah?',
+    prompt: '18: Bagaimana Anda memperkirakan perubahan kesehatan mental Anda dalam 6 bulan ke depan?',
     options: [
-      { label: 'Saya berharap kesejahteraan psikologis saya tetap sama atau menjadi lebih baik', value: 0 },
-      { label: 'Saya memperkirakan kesejahteraan psikologis saya akan sedikit memburuk', value: 1 },
-      { label: 'Saya memperkirakan kesejahteraan psikologis saya akan memburuk', value: 2 },
-      { label: 'Saya memperkirakan kesejahteraan psikologis saya akan semakin memburuk', value: 3 },
+      { label: 'Dalam 6 bulan ke depan saya berharap kesehatan mental saya tetap sama atau menjadi lebih baik', value: 0 },
+      { label: 'Dalam 6 bulan ke depan, saya memperkirakan kesehatan mental saya akan sedikit memburuk', value: 1 },
+      { label: 'Dalam 6 bulan ke depan, saya memperkirakan kesehatan mental saya akan memburuk', value: 2 },
+      { label: 'Dalam 6 bulan ke depan, saya memperkirakan kesehatan mental saya akan sangat memburuk', value: 3 },
     ],
-    orderIndex: 35,
+    orderIndex: 37,
     required: true,
   },
 
@@ -469,14 +509,14 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
   {
     variableName: 'prog_19_perkiraan_sosial',
     type: 'radio',
-    prompt: '19: Dalam 6 bulan ke depan, apakah Anda mengharapkan perubahan terhadap cara hidup Anda saat ini?',
+    prompt: '19: Bagaimana Anda memerlukan perubahan kondisi kehidupan Anda dalam 6 bulan ke depan?',
     options: [
-      { label: 'Dalam 6 bulan ke depan tidak perlu mengubah cara hidup saya saat ini', value: 0 },
-      { label: 'Saya bisa tinggal di situasi saat ini, namun perawatan di rumah diperlukan', value: 1 },
-      { label: 'Diperlukan perubahan situasi kehidupan yang lain', value: 2 },
-      { label: 'Perubahan pada situasi kehidupan diperlukan segera', value: 3 },
+      { label: 'Dalam 6 bulan ke depan tidak perlu mengubah kondisi kehidupan saya saat ini', value: 0 },
+      { label: 'Dalam 6 bulan ke depan saya bisa menetap dalam kondisi kehidupan saya saat ini, namun perawatan di rumah diperlukan', value: 1 },
+      { label: 'Dalam 6 bulan ke depan diperlukan perubahan kondisi kehidupan', value: 2 },
+      { label: 'Perubahan terhadap kondisi kehidupan diperlukan segera', value: 3 },
     ],
-    orderIndex: 36,
+    orderIndex: 38,
     required: true,
   },
 
@@ -484,14 +524,14 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
   {
     variableName: 'prog_20_kebutuhan_perawatan',
     type: 'radio',
-    prompt: '20: Bagaimana perkiraan kebutuhan perawatan Anda dalam 6 bulan ke depan?',
+    prompt: '20: Dalam 6 bulan ke depan, apakah Anda memerlukan bantuan dan dukungan lebih?',
     options: [
-      { label: 'Saya perkirakan kebutuhan perawatan saya akan tetap sama atau berkurang', value: 0 },
-      { label: 'Saya perkirakan kebutuhan perawatan saya akan meningkat', value: 1 },
-      { label: 'Saya perkirakan kebutuhan perawatan saya akan meningkat pesat', value: 2 },
-      { label: 'Saya berharap kebutuhan perawatan akan meningkat pesat and layanan tambahan akan diperlukan', value: 3 },
+      { label: 'Saya perkirakan dalam 6 bulan ke depan, kebutuhan layanan kesehatan saya akan tetap sama atau berkurang', value: 0 },
+      { label: 'Saya perkirakan dalam 6 bulan ke depan, kebutuhan perawatan saya akan meningkat', value: 1 },
+      { label: 'Saya perkirakan dalam 6 bulan ke depan, kebutuhan perawatan saya akan meningkat sangat banyak', value: 2 },
+      { label: 'Saya perkirakan dalam 6 bulan ke depan, kebutuhan perawatan saya akan meningkat sangat banyak dan membutuhkan layanan tambahan', value: 3 },
     ],
-    orderIndex: 37,
+    orderIndex: 39,
     required: true,
   },
 ];

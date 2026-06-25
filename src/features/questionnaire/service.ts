@@ -43,7 +43,9 @@ export type ValidationResult =
  *  prog_20_kebutuhan_perawatan                       → domain 20
  */
 export function calculateImsaScore(
-  answersByVarName: Record<string, number>
+  answersByVarName: Record<string, number>,
+  /** Raw string values for multi-select questions (e.g. Q15 letter codes "a,c,e") */
+  rawAnswersByVarName: Record<string, string> = {}
 ): { totalScore: number; domainScores: Record<string, number> } {
   const v = answersByVarName
   const domains: Record<string, number> = {}
@@ -76,13 +78,18 @@ export function calculateImsaScore(
   // Domain 8: Gejala mental saat ini — direct
   domains['8_gejala_mental'] = v['saat_ini_8_gejala_mental'] ?? 0
 
-  // Domain 9: Pekerjaan dan waktu luang — composite
-  // 9a: 1=bekerja, 0=tidak bekerja  |  9c: 1=ada kegiatan, 0=tidak
-  const d9a = v['hist_9a_memiliki_pekerjaan'] ?? 0  // 1=yes, 0=no
-  const d9c = v['hist_9c_kegiatan_luang'] ?? 0       // 1=yes, 0=no
-  if (d9a === 1 && d9c === 1) domains['9_pekerjaan_waktu_luang'] = 0
-  else if (d9a === 1 && d9c === 0) domains['9_pekerjaan_waktu_luang'] = 1
-  else if (d9a === 0 && d9c === 1) domains['9_pekerjaan_waktu_luang'] = 2
+  // Domain 9: Pekerjaan dan waktu luang — composite (9a + 9b + 9c)
+  // 9a: 1=bekerja, 0=tidak bekerja
+  // 9b: 0=kelompok fungsi (pelajar/pensiun/RT/tidak berlaku), 1=non-fungsi (disabilitas/cuti sakit)
+  // 9c: 1=ada kegiatan waktu luang, 0=tidak
+  // Functioning group = employed (9a=1) OR not-employed but reason is functioning (9a=0 && 9b=0)
+  const d9a = v['hist_9a_memiliki_pekerjaan'] ?? 0
+  const d9b = v['hist_9b_alasan_tidak_bekerja'] ?? 0
+  const d9c = v['hist_9c_kegiatan_luang'] ?? 0
+  const functioning9 = d9a === 1 || (d9a === 0 && d9b === 0)
+  if (functioning9 && d9c === 1) domains['9_pekerjaan_waktu_luang'] = 0
+  else if (functioning9 && d9c === 0) domains['9_pekerjaan_waktu_luang'] = 1
+  else if (!functioning9 && d9c === 1) domains['9_pekerjaan_waktu_luang'] = 2
   else domains['9_pekerjaan_waktu_luang'] = 3
 
   // Domain 10: Hubungan sosial — direct
@@ -99,6 +106,23 @@ export function calculateImsaScore(
 
   // Domain 14: Pengalaman pengobatan — direct
   domains['14_pengalaman_pengobatan'] = v['hist_14_pengalaman_pengobatan'] ?? 0
+
+  // Domain 15: Pengaturan/organisasi layanan — multi-select by letter codes
+  // Codes come from rawAnswersByVarName as comma-joined string (e.g. "a,c,e")
+  // Score rule: h|i|j=3 | (c|d)&e=2 | c|d|e=1 | a|b|f|g (or none)=0
+  {
+    const raw15 = rawAnswersByVarName['saat_ini_15_pengaturan_layanan'] ?? ''
+    const codes = new Set(raw15.split(',').map(s => s.trim()).filter(Boolean))
+    let d15 = 0
+    if (codes.has('h') || codes.has('i') || codes.has('j')) {
+      d15 = 3
+    } else if ((codes.has('c') || codes.has('d')) && codes.has('e')) {
+      d15 = 2
+    } else if (codes.has('c') || codes.has('d') || codes.has('e')) {
+      d15 = 1
+    }
+    domains['15_pengaturan_layanan'] = d15
+  }
 
   // Domain 16: Koordinasi perawatan — direct
   domains['16_koordinasi_perawatan'] = v['saat_ini_16_koordinasi_perawatan'] ?? 0
@@ -187,11 +211,13 @@ export class QuestionnaireService {
       throw new Error(validation.error)
     }
 
-    // Build variableName→numericValue map for scoring
+    // Build variableName→numericValue and →rawString maps for scoring
     const answersByVarName: Record<string, number> = {}
+    const rawAnswersByVarName: Record<string, string> = {}
     for (const ans of input.answers) {
       const varName = questionVarNames[ans.questionId]
       if (varName) {
+        rawAnswersByVarName[varName] = ans.value
         const num = parseInt(ans.value, 10)
         if (!isNaN(num)) {
           answersByVarName[varName] = num
@@ -199,7 +225,7 @@ export class QuestionnaireService {
       }
     }
 
-    const { totalScore } = calculateImsaScore(answersByVarName)
+    const { totalScore } = calculateImsaScore(answersByVarName, rawAnswersByVarName)
 
     return this.repository.saveResponse(
       input.formTemplateId,

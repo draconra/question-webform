@@ -76,13 +76,21 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
               val = String(options[idx].value);
             }
           } else if (q && q.type === 'checkbox') {
-            // Checkbox: rawVal is comma-separated indices like "0,2,5"
+            // Checkbox: rawVal is comma-separated option indices like "0,2,5"
             const options = q.options || [];
             const indices = rawVal.split(',').filter(Boolean).map(Number);
-            const labels = indices
-              .filter(i => !isNaN(i) && options[i])
-              .map(i => options[i].label);
-            val = labels.join(', ');
+            if (q.variableName.startsWith('saat_ini_15')) {
+              // Q15 scoring uses letter-code values (a–j), not display labels
+              val = indices
+                .filter(i => !isNaN(i) && options[i])
+                .map(i => String(options[i].value))
+                .join(',');
+            } else {
+              val = indices
+                .filter(i => !isNaN(i) && options[i])
+                .map(i => options[i].label)
+                .join(', ');
+            }
           }
           return { questionId, value: val };
         }),
