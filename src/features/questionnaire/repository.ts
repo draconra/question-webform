@@ -11,8 +11,8 @@ export type AnalyticsQuestion = {
   variableName: string
   prompt: string
   type: string
-  options: Array<{ label: string; value: number }> | null
-  answerDistribution: Record<string, number> // value -> count
+  options: Array<{ label: string; value: string | number }> | null
+  answerDistribution: Record<string, number> // value -> count (checkbox: split tokens)
 }
 
 export type ScoreSummary = {
@@ -94,8 +94,13 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
       const distribution: Record<string, number> = {}
       for (const response of template.responses) {
         const answer = response.answers.find((a) => a.questionId === question.id)
-        if (answer?.value !== undefined && answer.value !== null) {
-          distribution[answer.value] = (distribution[answer.value] ?? 0) + 1
+        if (answer?.value != null) {
+          // Checkbox answers are stored as comma-joined tokens (e.g. "a,c,e" or "Hipertensi, Stroke").
+          // Split each token so the distribution counts individual selections, not whole combo strings.
+          const tokens = question.type === 'checkbox'
+            ? answer.value.split(',').map(s => s.trim()).filter(Boolean)
+            : [answer.value]
+          for (const t of tokens) distribution[t] = (distribution[t] ?? 0) + 1
         }
       }
       return {

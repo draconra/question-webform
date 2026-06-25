@@ -16,7 +16,7 @@ type AnalyticsQuestion = {
   variableName: string
   prompt: string
   type: string
-  options: Array<{ label: string; value: number }> | null
+  options: Array<{ label: string; value: string | number }> | null
   answerDistribution: Record<string, number>
 }
 
@@ -35,7 +35,8 @@ function QuestionChart({ question }: { question: AnalyticsQuestion }) {
     ? question.options.map((opt, i) => ({
         name: opt.label.length > 30 ? opt.label.slice(0, 28) + '…' : opt.label,
         fullLabel: opt.label,
-        count: question.answerDistribution[String(opt.value)] ?? 0,
+        // Look up by stored value first (Q15: letter codes), then by label (Q8: labels).
+        count: question.answerDistribution[String(opt.value)] ?? question.answerDistribution[opt.label] ?? 0,
         color: COLORS[i % COLORS.length],
       }))
     : Object.entries(question.answerDistribution).map(([val, count], i) => ({
