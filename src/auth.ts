@@ -2,6 +2,7 @@ import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { timingSafeEqual, createHash } from "crypto"
 import bcrypt from "bcryptjs"
+import { authConfig } from "@/auth.config"
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD
@@ -33,6 +34,7 @@ async function verifyPassword(plain: string, stored: string): Promise<boolean> {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
   providers: [
     CredentialsProvider({
       name: "Admin Login",
@@ -57,7 +59,4 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
     })
   ],
-  pages: {
-    signIn: '/auth/signin',
-  },
 })
