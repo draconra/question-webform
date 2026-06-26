@@ -1,15 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from 'recharts'
 
 type AnalyticsQuestion = {
   id: string
@@ -20,67 +11,29 @@ type AnalyticsQuestion = {
   answerDistribution: Record<string, number>
 }
 
-const COLORS = ['#2563eb', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6']
+/**
+ * For a single-user view, answerDistribution has exactly the key(s) that user
+ * chose. Resolve raw stored keys back to human-readable option labels.
+ */
+function getAnswerInfo(question: AnalyticsQuestion): { labels: string[]; rawKeys: string[] } {
+  const keys = Object.keys(question.answerDistribution)
+  if (keys.length === 0) return { labels: ['—'], rawKeys: ['—'] }
 
-function QuestionChart({ question }: { question: AnalyticsQuestion }) {
-  const totalAnswers = Object.values(question.answerDistribution).reduce((a, b) => a + b, 0)
-
-  if (totalAnswers === 0) {
-    return (
-      <div style={styles.noData}>Belum ada jawaban</div>
-    )
+  if (!question.options) {
+    // number / text — raw value IS the answer
+    return { labels: keys, rawKeys: keys }
   }
 
-  const chartData = question.options
-    ? question.options.map((opt, i) => ({
-        name: opt.label.length > 30 ? opt.label.slice(0, 28) + '…' : opt.label,
-        fullLabel: opt.label,
-        // Look up by stored value first (Q15: letter codes), then by label (Q8: labels).
-        count: question.answerDistribution[String(opt.value)] ?? question.answerDistribution[opt.label] ?? 0,
-        color: COLORS[i % COLORS.length],
-      }))
-    : Object.entries(question.answerDistribution).map(([val, count], i) => ({
-        name: val,
-        fullLabel: val,
-        count,
-        color: COLORS[i % COLORS.length],
-      }))
+  const labels = keys.map((key) => {
+    // Look up by stored value first (Q15: letter codes 'a','b',…),
+    // then by label string (fallback for older radio answers stored by label).
+    const opt = question.options!.find(
+      (o) => String(o.value) === key || o.label === key
+    )
+    return opt ? opt.label : key
+  })
 
-  return (
-    <div style={styles.chartWrapper}>
-      <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 40 }}>
-          <XAxis
-            dataKey="name"
-            tick={{ fontSize: 11 }}
-            angle={-20}
-            textAnchor="end"
-            interval={0}
-          />
-          <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-          <Tooltip
-            formatter={(value, _name, props) => [
-              `${value} jawaban (${totalAnswers > 0 ? Math.round((Number(value) / totalAnswers) * 100) : 0}%)`,
-              (props.payload as any)?.fullLabel ?? _name,
-            ]}
-          />
-          <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-            {chartData.map((entry, index) => (
-              <Cell key={index} fill={entry.color} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-      <div style={styles.legendRow}>
-        {chartData.map((d, i) => (
-          <span key={i} style={styles.legendItem}>
-            <span style={{ ...styles.legendDot, backgroundColor: d.color }} />
-            <span style={styles.legendText}>{d.count}× {d.fullLabel}</span>
-          </span>
-        ))}
-      </div>
-    </div>
-  )
+  return { labels, rawKeys: keys }
 }
 
 export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
@@ -127,87 +80,117 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
   }
 
   return (
-    <div style={styles.grid}>
-      {questionsWithAnswers.map((q) => (
-        <div key={q.id} style={styles.card}>
-          <p style={styles.varName}>{q.variableName}</p>
-          <h3 style={styles.prompt}>{q.prompt}</h3>
-          <QuestionChart question={q} />
-        </div>
-      ))}
+    <div style={styles.container}>
+      <table style={styles.table}>
+        <thead>
+          <tr>
+            <th style={{ ...styles.th, width: '48px' }}>No</th>
+            <th style={styles.th}>Pertanyaan</th>
+            <th style={styles.th}>Jawaban</th>
+            <th style={{ ...styles.th, width: '90px' }}>Nilai</th>
+          </tr>
+        </thead>
+        <tbody>
+          {questionsWithAnswers.map((q, idx) => {
+            const { labels, rawKeys } = getAnswerInfo(q)
+            return (
+              <tr key={q.id} style={styles.tr}>
+                <td style={{ ...styles.td, ...styles.tdNo }}>{idx + 1}</td>
+                <td style={styles.td}>
+                  <span style={styles.varName}>{q.variableName}</span>
+                  <span style={styles.prompt}>{q.prompt}</span>
+                </td>
+                <td style={styles.td}>
+                  {labels.map((lbl, i) => (
+                    <span key={i} style={styles.labelLine}>{lbl}</span>
+                  ))}
+                </td>
+                <td style={{ ...styles.td, ...styles.tdValue }}>
+                  <code style={styles.rawCode}>{rawKeys.join(', ')}</code>
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
     </div>
   )
 }
 
 const styles = {
-  grid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(440px, 1fr))',
-    gap: '2rem',
-    marginTop: '2rem',
-  } as React.CSSProperties,
-  card: {
+  container: {
     backgroundColor: '#fff',
     border: '1px solid #e2e8f0',
     borderRadius: '24px',
-    padding: '2rem',
+    overflow: 'hidden',
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+    marginTop: '2rem',
   } as React.CSSProperties,
-  varName: {
-    fontSize: '12px',
-    color: '#94a3b8',
-    fontFamily: 'monospace',
-    margin: '0 0 8px 0',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.1em',
-    fontWeight: 700,
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse' as const,
+    textAlign: 'left' as const,
   } as React.CSSProperties,
-  prompt: {
-    fontSize: '18px',
-    fontWeight: 700,
-    color: '#0f172a',
-    margin: '0 0 1.5rem 0',
-    lineHeight: 1.4,
-    fontFamily: "'Outfit', sans-serif",
-  } as React.CSSProperties,
-  chartWrapper: {
-    marginTop: '0.5rem',
-  } as React.CSSProperties,
-  noData: {
-    color: '#94a3b8',
-    fontSize: '14px',
-    padding: '2rem 0',
-    textAlign: 'center' as const,
+  th: {
+    padding: '1.25rem 1.5rem',
     backgroundColor: '#f8fafc',
-    borderRadius: '12px',
-    border: '2px dashed #e2e8f0',
-  } as React.CSSProperties,
-  legendRow: {
-    display: 'flex',
-    flexDirection: 'column' as const,
-    gap: '8px',
-    marginTop: '1.5rem',
-    padding: '1.25rem',
-    backgroundColor: '#f8fafc',
-    borderRadius: '16px',
-  } as React.CSSProperties,
-  legendItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
+    color: '#64748b',
     fontSize: '13px',
+    fontWeight: 700,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.05em',
+    borderBottom: '1px solid #e2e8f0',
+  } as React.CSSProperties,
+  tr: {
+    borderBottom: '1px solid #f1f5f9',
+  } as React.CSSProperties,
+  td: {
+    padding: '1rem 1.5rem',
+    fontSize: '14px',
     color: '#334155',
     fontWeight: 500,
+    verticalAlign: 'top' as const,
   } as React.CSSProperties,
-  legendDot: {
+  tdNo: {
+    color: '#94a3b8',
+    fontWeight: 400,
+    fontSize: '13px',
+    textAlign: 'center' as const,
+  } as React.CSSProperties,
+  tdValue: {
+    textAlign: 'center' as const,
+  } as React.CSSProperties,
+  varName: {
+    display: 'block',
+    fontSize: '11px',
+    color: '#94a3b8',
+    fontFamily: 'monospace',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.08em',
+    fontWeight: 700,
+    marginBottom: '4px',
+  } as React.CSSProperties,
+  prompt: {
+    display: 'block',
+    fontSize: '14px',
+    color: '#0f172a',
+    lineHeight: 1.5,
+    fontWeight: 500,
+  } as React.CSSProperties,
+  labelLine: {
+    display: 'block',
+    lineHeight: 1.5,
+    paddingBottom: '2px',
+  } as React.CSSProperties,
+  rawCode: {
     display: 'inline-block',
-    width: '12px',
-    height: '12px',
-    borderRadius: '4px',
-    flexShrink: 0,
-  } as React.CSSProperties,
-  legendText: {
-    lineHeight: 1.4,
+    padding: '4px 10px',
+    backgroundColor: '#f1f5f9',
+    color: '#475569',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontFamily: 'monospace',
+    fontWeight: 700,
   } as React.CSSProperties,
   loading: {
     padding: '4rem',
