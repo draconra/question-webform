@@ -12,13 +12,15 @@ type AnalyticsQuestion = {
   answerDistribution: Record<string, number>
 }
 
-const SCORED_PREFIXES = ['hist_', 'saat_ini_', 'prog_', 'pra_', 'tamb_']
+const SCORED_PREFIXES = ['hist_', 'saat_ini_', 'prog_']
 
 /**
- * Identity/demographic questions (before PRA-1) carry no IMSA scoring weight.
- * They are detected by the absence of any known scored prefix.
+ * Questions that carry no IMSA scoring weight: identity/demographic questions
+ * (before PRA-1), PRA questions (pra_), and supplementary questions (tamb_).
+ * calculateImsaScore only uses hist_/saat_ini_/prog_ variables; pra_/tamb_
+ * contribute 0. Detected by the absence of any scored prefix.
  */
-function isIdentityQuestion(variableName: string): boolean {
+function isNonScoredQuestion(variableName: string): boolean {
   return !SCORED_PREFIXES.some((p) => variableName.startsWith(p))
 }
 
@@ -163,7 +165,7 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
                   )}
                 </td>
                 <td style={{ ...styles.td, ...styles.tdValue }}>
-                  {isIdentityQuestion(q.variableName)
+                  {isNonScoredQuestion(q.variableName)
                     ? <span style={{ color: '#cbd5e1' }}>—</span>
                     : <code style={styles.rawCode}>{rawKeys.join(', ')}</code>
                   }
