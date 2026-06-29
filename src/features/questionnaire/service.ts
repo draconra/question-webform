@@ -112,12 +112,12 @@ export function calculateImsaScore(
 
   // Domain 15: Pengaturan/organisasi layanan — multi-select by letter codes
   // Codes come from rawAnswersByVarName as comma-joined string (e.g. "a,c,e")
-  // Score rule: h|i|j=3 | (c|d)&e=2 | c|d|e=1 | a|b|f|g (or none)=0
+  // Score rule: h|i=3 | (c|d)&e=2 | c|d|e=1 | a|b|f|g/j/k (or none)=0
   {
     const raw15 = rawAnswersByVarName['saat_ini_15_pengaturan_layanan'] ?? ''
     const codes = new Set(raw15.split(',').map(s => s.trim()).filter(Boolean))
     let d15 = 0
-    if (codes.has('h') || codes.has('i') || codes.has('j')) {
+    if (codes.has('h') || codes.has('i')) {
       d15 = 3
     } else if ((codes.has('c') || codes.has('d')) && codes.has('e')) {
       d15 = 2

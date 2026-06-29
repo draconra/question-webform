@@ -7,7 +7,7 @@ import { ArrowUp, ArrowDown, Check } from 'lucide-react';
 
 import { ParsedFormTemplate, ParsedQuestion } from '../types';
 import SignaturePad from './SignaturePad';
-import { maskPhone } from '../utils';
+import { maskPhone, NESTED_SUBS, NESTED_SUB_VARS } from '../utils';
 
 export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   const router = useRouter();
@@ -24,9 +24,9 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
 
   const questions = template.questions;
 
-  // Filter out companion "_lainnya" questions and pra_2_pendamping (rendered inline) — not standalone steps.
+  // Filter out companion "_lainnya" questions and nested sub-questions (rendered inline) — not standalone steps.
   const steppedQuestions = questions.filter(
-    q => !q.variableName.endsWith('_lainnya') && q.variableName !== 'pra_2_pendamping'
+    q => !q.variableName.endsWith('_lainnya') && !NESTED_SUB_VARS.includes(q.variableName)
   );
 
   // Build companion map: parent question ID → companion question.
@@ -71,19 +71,19 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   const companionRequired = radioOptRequiresText || checkboxRequiresText;
   const companionAnswer = currentCompanion ? (answers[currentCompanion.id] ?? '') : '';
 
-  // PRA-2 conditional sub-question — rendered inline on the parent step
-  const pra2SubQuestion = questions.find(q => q.variableName === 'pra_2_pendamping');
-  const pra2SubCompanion = pra2SubQuestion ? companionMap.get(pra2SubQuestion.id) : undefined;
-  const isPra2Parent = currentQuestion?.variableName === 'pra_2_pengisi_kuesioner';
-  // Sub appears only when parent index is 1 (b) or 2 (c); index 0 (a) = no sub
-  const showPra2Sub = isPra2Parent && (selectedRadioIdx === 1 || selectedRadioIdx === 2);
-  const subAnswer = pra2SubQuestion ? (answers[pra2SubQuestion.id] ?? '') : '';
-  const subOpts = pra2SubQuestion?.options ?? [];
+  // Generic nested sub-question support (PRA-2 pendamping, 9a→9b, etc.)
+  const nestedConfig = currentQuestion ? NESTED_SUBS[currentQuestion.variableName] : undefined;
+  const isParentWithSub = !!nestedConfig;
+  const subQuestion = nestedConfig ? questions.find(q => q.variableName === nestedConfig.subVar) : undefined;
+  const subCompanion = subQuestion ? companionMap.get(subQuestion.id) : undefined;
+  const showSub = !!(nestedConfig && subQuestion && nestedConfig.showWhenIdx.includes(selectedRadioIdx));
+  const subAnswer = subQuestion ? (answers[subQuestion.id] ?? '') : '';
+  const subOpts = subQuestion?.options ?? [];
   const subSelectedIdx = subAnswer !== '' ? parseInt(subAnswer, 10) : -1;
   const subRequiresText = subSelectedIdx >= 0 && !isNaN(subSelectedIdx)
     ? (subOpts[subSelectedIdx]?.requiresText ?? false)
     : false;
-  const subCompanionAnswer = pra2SubCompanion ? (answers[pra2SubCompanion.id] ?? '') : '';
+  const subCompanionAnswer = subCompanion ? (answers[subCompanion.id] ?? '') : '';
 
   const canProceed = step === 'identity'
     ? nama.trim() !== '' && noTelp.replace(/\D/g, '').length >= 7 && signature !== '' && consent
@@ -92,16 +92,15 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
       : step === 'inisial'
         ? inisial.trim() !== ''
         : currentAnswer !== '' && (!companionRequired || companionAnswer.trim() !== '')
-            && (!showPra2Sub || (subAnswer !== '' && (!subRequiresText || subCompanionAnswer.trim() !== '')));
+            && (!showSub || (subAnswer !== '' && (!subRequiresText || subCompanionAnswer.trim() !== '')));
 
-  // Helper: set parent answer for PRA-2, clearing sub-question data when option (a) is chosen.
+  // Helper: set parent answer, clearing sub data when the new selection hides the sub.
   const setParentAnswer = (qId: string, idx: number) => {
     setAnswers(prev => {
       const next = { ...prev, [qId]: String(idx) };
-      // Option a (index 0) = self-fill, no companion → clear sub answer + companion text
-      if (idx === 0 && pra2SubQuestion) {
-        delete next[pra2SubQuestion.id];
-        if (pra2SubCompanion) delete next[pra2SubCompanion.id];
+      if (nestedConfig && !nestedConfig.showWhenIdx.includes(idx) && subQuestion) {
+        delete next[subQuestion.id];
+        if (subCompanion) delete next[subCompanion.id];
       }
       return next;
     });
@@ -219,13 +218,13 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
         const opt = options[idx];
         if (opt) {
           const qId = currentQuestion.id;
-          if (isPra2Parent) {
+          if (isParentWithSub) {
             setParentAnswer(qId, idx);
           } else {
             setAnswers(prev => ({ ...prev, [qId]: String(idx) }));
           }
           // Auto-advance only when option does NOT require text AND this is not the PRA-2 parent
-          if (!opt.requiresText && !isPra2Parent) {
+          if (!opt.requiresText && !isParentWithSub) {
             if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
             advanceTimerRef.current = setTimeout(() => {
               setStep(prev => {
@@ -299,13 +298,13 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                   key={index}
                   onClick={() => {
                     const qId = currentQuestion.id;
-                    if (isPra2Parent) {
+                    if (isParentWithSub) {
                       setParentAnswer(qId, index);
                     } else {
                       setAnswers(prev => ({ ...prev, [qId]: String(index) }));
                     }
                     // Auto-advance on click only when option does NOT require text AND not PRA-2 parent
-                    if (!opt.requiresText && !isPra2Parent) {
+                    if (!opt.requiresText && !isParentWithSub) {
                       if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
                       advanceTimerRef.current = setTimeout(() => {
                         setStep(prev => {
@@ -350,10 +349,10 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
               />
             </div>
           )}
-          {/* PRA-2 conditional sub-question: shown when parent = option b or c */}
-          {showPra2Sub && pra2SubQuestion && (
+          {/* Conditional nested sub-question (e.g. PRA-2 pendamping, 9b alasan tidak bekerja) */}
+          {showSub && subQuestion && (
             <div style={styles.subQuestionWrapper}>
-              <p style={styles.subQuestionLabel}>Siapa pendamping Anda?</p>
+              <p style={styles.subQuestionLabel}>{subQuestion.prompt}</p>
               <div style={styles.optionsList}>
                 {subOpts.map((subOpt, subIdx) => {
                   const isSubSelected = subAnswer === String(subIdx);
@@ -361,7 +360,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                     <div
                       key={subIdx}
                       onClick={() => {
-                        const sId = pra2SubQuestion.id;
+                        const sId = subQuestion.id;
                         setAnswers(prev => ({ ...prev, [sId]: String(subIdx) }));
                       }}
                       style={{
@@ -378,7 +377,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                   );
                 })}
               </div>
-              {subRequiresText && pra2SubCompanion && (
+              {subRequiresText && subCompanion && (
                 <div style={styles.companionWrapper}>
                   <p style={styles.companionLabel}>Sebutkan:</p>
                   <input
@@ -387,7 +386,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                     placeholder="Ketik di sini..."
                     value={subCompanionAnswer}
                     onChange={(e) => {
-                      const cId = pra2SubCompanion.id;
+                      const cId = subCompanion.id;
                       const v = e.target.value;
                       setAnswers(prev => ({ ...prev, [cId]: v }));
                     }}
@@ -645,7 +644,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                 {error && <p style={styles.errorText}>{error}</p>}
 
                 {/* Show OK/Submit button for non-radio inputs, last step, Lainnya text required, or PRA-2 parent */}
-                {(currentQuestion?.type !== 'radio' || lastStep || companionRequired || isPra2Parent) && (
+                {(currentQuestion?.type !== 'radio' || lastStep || companionRequired || isParentWithSub) && (
                   <div style={{ display: 'flex', alignItems: 'center', marginTop: '2rem' }}>
                     <button
                       style={{ ...styles.primaryBtn, opacity: canProceed ? 1 : 0.5 }}

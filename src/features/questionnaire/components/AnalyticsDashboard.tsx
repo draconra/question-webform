@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { NESTED_SUBS, NESTED_SUB_VARS } from '../utils'
 
 type AnalyticsQuestion = {
   id: string
@@ -98,11 +99,19 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
     }
   }
 
-  // Show only answered non-companion questions. Companion _lainnya rows are
-  // folded into their parent's label column and must not appear as own rows.
+  // Build sub-question lookup: parentVariableName → sub question object.
+  const subByParent = new Map<string, AnalyticsQuestion>()
+  for (const [parentVar, cfg] of Object.entries(NESTED_SUBS)) {
+    const sub = questions.find(q => q.variableName === cfg.subVar)
+    if (sub) subByParent.set(parentVar, sub)
+  }
+
+  // Show only answered non-companion, non-nested-sub questions.
+  // Companion _lainnya and nested sub rows are folded into their parent's row.
   const questionsWithAnswers = questions.filter(
     (q) =>
       !q.variableName.endsWith('_lainnya') &&
+      !NESTED_SUB_VARS.includes(q.variableName) &&
       Object.keys(q.answerDistribution).length > 0
   )
 
@@ -129,6 +138,11 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
           {questionsWithAnswers.map((q, idx) => {
             const companionText = companionTextMap.get(q.variableName) ?? null
             const { labels, rawKeys } = getAnswerInfo(q, companionText)
+            // If this is a parent with a nested sub, fold sub answer below parent answer
+            const subQ = subByParent.get(q.variableName)
+            const subHasAnswer = subQ && Object.keys(subQ.answerDistribution).length > 0
+            const subCompText = subQ ? (companionTextMap.get(subQ.variableName) ?? null) : null
+            const subInfo = subHasAnswer ? getAnswerInfo(subQ!, subCompText) : null
             return (
               <tr key={q.id} style={styles.tr}>
                 <td style={{ ...styles.td, ...styles.tdNo }}>{idx + 1}</td>
@@ -139,6 +153,14 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
                   {labels.map((lbl, i) => (
                     <span key={i} style={styles.labelLine}>{lbl}</span>
                   ))}
+                  {subInfo && (
+                    <span style={styles.subAnswerBlock}>
+                      <span style={styles.subAnswerLabel}>{subQ!.prompt}</span>
+                      {subInfo.labels.map((lbl, i) => (
+                        <span key={i} style={styles.labelLine}>{lbl}</span>
+                      ))}
+                    </span>
+                  )}
                 </td>
                 <td style={{ ...styles.td, ...styles.tdValue }}>
                   {isIdentityQuestion(q.variableName)
@@ -209,6 +231,19 @@ const styles = {
     display: 'block',
     lineHeight: 1.5,
     paddingBottom: '2px',
+  } as React.CSSProperties,
+  subAnswerBlock: {
+    display: 'block',
+    marginTop: '6px',
+    paddingTop: '6px',
+    borderTop: '1px dashed #e2e8f0',
+  } as React.CSSProperties,
+  subAnswerLabel: {
+    display: 'block',
+    fontSize: '11px',
+    color: '#94a3b8',
+    fontWeight: 600,
+    marginBottom: '2px',
   } as React.CSSProperties,
   rawCode: {
     display: 'inline-block',

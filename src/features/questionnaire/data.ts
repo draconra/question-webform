@@ -393,7 +393,6 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
     type: 'radio',
     prompt: '9b. Jika Anda menjawab Tidak, sebutkan:',
     options: [
-      { label: 'Tidak berlaku (saya masih bekerja)', value: 0 },
       { label: 'Saya adalah seorang pelajar/mahasiswa', value: 0 },
       { label: 'Saya sudah pensiun', value: 0 },
       { label: 'Saya mengurus rumah tangga dan lain-lain', value: 0 },
@@ -493,7 +492,7 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
 
   // --- Saat ini – Pengaturan layanan (Q15) ---
   // Multi-select; values are letter codes used by the scoring engine.
-  // Score: a/b/f/g/k=0 | c/d/e=1 | (c|d)&e=2 | h/i/j=3
+  // Score: a/b/f/g/j/k=0 | c/d/e=1 | (c|d)&e=2 | h/i=3
   {
     variableName: 'saat_ini_15_pengaturan_layanan',
     type: 'checkbox',
