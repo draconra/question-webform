@@ -5,6 +5,9 @@ import { FormTemplateWithQuestions, ParsedFormTemplate, ParsedQuestion, Question
 export type SubmitAnswersInput = {
   formTemplateId: string
   inisial: string
+  nama?: string
+  noTelp?: string
+  signature?: string
   answers: Array<{ questionId: string; value: string }>
 }
 
@@ -231,7 +234,8 @@ export class QuestionnaireService {
       input.formTemplateId,
       input.inisial.trim(),
       totalScore,
-      input.answers
+      input.answers,
+      { nama: input.nama, noTelp: input.noTelp, signature: input.signature }
     )
   }
 

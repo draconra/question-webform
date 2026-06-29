@@ -6,11 +6,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowUp, ArrowDown, Check } from 'lucide-react';
 
 import { ParsedFormTemplate, ParsedQuestion } from '../types';
+import SignaturePad from './SignaturePad';
+import { maskPhone } from '../utils';
 
 export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   const router = useRouter();
-  // Step -2 = Opening, Step -1 = Inisial collection screen, 0+ = questions
-  const [step, setStep] = useState<'opening' | 'inisial' | number>('opening');
+  // Step -3 = Identity, Step -2 = Opening, Step -1 = Inisial collection screen, 0+ = questions
+  const [step, setStep] = useState<'identity' | 'opening' | 'inisial' | number>('identity');
+  const [nama, setNama] = useState('');
+  const [noTelp, setNoTelp] = useState('');
+  const [signature, setSignature] = useState('');
   const [inisial, setInisial] = useState('');
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,11 +43,11 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   // Ref for auto-advance timer — cleared on unmount / before next advance
   const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const currentStep = step === 'opening' ? -2 : step === 'inisial' ? -1 : (step as number);
+  const currentStep = step === 'identity' ? -3 : step === 'opening' ? -2 : step === 'inisial' ? -1 : (step as number);
   const lastStep = typeof step === 'number' && currentStep === steppedQuestions.length - 1;
-  const progressPercentage = (step === 'opening' || step === 'inisial') ? 0 : ((currentStep + 1) / steppedQuestions.length) * 100;
+  const progressPercentage = (step === 'identity' || step === 'opening' || step === 'inisial') ? 0 : ((currentStep + 1) / steppedQuestions.length) * 100;
 
-  const currentQuestion = (step === 'opening' || step === 'inisial') ? null : steppedQuestions[currentStep];
+  const currentQuestion = (step === 'identity' || step === 'opening' || step === 'inisial') ? null : steppedQuestions[currentStep];
   const currentAnswer = currentQuestion ? (answers[currentQuestion.id] || '') : '';
 
   // Companion question for the current step (if any)
@@ -63,17 +68,21 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   const companionRequired = radioOptRequiresText || checkboxRequiresText;
   const companionAnswer = currentCompanion ? (answers[currentCompanion.id] ?? '') : '';
 
-  const canProceed = step === 'opening'
-    ? true
-    : step === 'inisial'
-      ? inisial.trim() !== ''
-      : currentAnswer !== '' && (!companionRequired || companionAnswer.trim() !== '');
+  const canProceed = step === 'identity'
+    ? nama.trim() !== '' && noTelp.replace(/\D/g, '').length >= 7 && signature !== ''
+    : step === 'opening'
+      ? true
+      : step === 'inisial'
+        ? inisial.trim() !== ''
+        : currentAnswer !== '' && (!companionRequired || companionAnswer.trim() !== '');
 
   const handleNext = async () => {
     if (!canProceed || isSubmitting) return;
 
     setDirection(1);
-    if (step === 'opening') {
+    if (step === 'identity') {
+      setStep('opening');
+    } else if (step === 'opening') {
       setStep('inisial');
     } else if (step === 'inisial') {
       setStep(0);
@@ -88,7 +97,9 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
     if (isSubmitting) return;
     setDirection(-1);
 
-    if (step === 'inisial') {
+    if (step === 'opening') {
+      setStep('identity');
+    } else if (step === 'inisial') {
       setStep('opening');
     } else if (currentStep === 0) {
       setStep('inisial');
@@ -104,6 +115,9 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
       const payload = {
         formTemplateId: template.id,
         inisial: inisial.trim(),
+        nama: nama.trim(),
+        noTelp: maskPhone(noTelp),
+        signature,
         answers: Object.entries(answers).map(([questionId, rawVal]) => {
           const q = questions.find((q) => q.id === questionId);
           let val = rawVal;
@@ -408,7 +422,60 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             style={styles.stepContainer}
           >
-            {step === 'opening' ? (
+            {step === 'identity' ? (
+              <div style={styles.questionBlock}>
+                <div style={styles.questionNumber}>Identitas</div>
+                <h2 style={{ ...styles.promptText, fontSize: 'clamp(22px, 4vw, 32px)' }}>
+                  Data Diri &amp; Tanda Tangan
+                </h2>
+
+                <p style={styles.fieldLabel}>
+                  Nama Lengkap <span style={styles.requiredMark}>*</span>
+                </p>
+                <input
+                  type="text"
+                  style={styles.textInput}
+                  value={nama}
+                  onChange={(e) => setNama(e.target.value)}
+                  placeholder="Nama lengkap..."
+                  autoComplete="name"
+                  autoFocus
+                />
+
+                <p style={{ ...styles.fieldLabel, marginTop: '2rem' }}>
+                  No. Telepon <span style={styles.requiredMark}>*</span>
+                </p>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  style={styles.textInput}
+                  value={noTelp}
+                  onChange={(e) => setNoTelp(e.target.value)}
+                  placeholder="08xx..."
+                  autoComplete="tel"
+                />
+                <p style={styles.fieldHint}>
+                  Nomor disimpan ter-enkripsi — hanya 4 digit depan &amp; 2 digit belakang yang terlihat.
+                </p>
+
+                <p style={{ ...styles.fieldLabel, marginTop: '2rem' }}>
+                  Tanda Tangan Digital <span style={styles.requiredMark}>*</span>
+                </p>
+                <SignaturePad value={signature} onChange={setSignature} />
+
+                {error && <p style={styles.errorText}>{error}</p>}
+
+                <div style={{ display: 'flex', alignItems: 'center', marginTop: '2rem' }}>
+                  <button
+                    style={{ ...styles.primaryBtn, opacity: canProceed ? 1 : 0.5 }}
+                    onClick={handleNext}
+                    disabled={!canProceed}
+                  >
+                    Lanjut <ArrowDown size={18} style={{ marginLeft: 8 }} />
+                  </button>
+                </div>
+              </div>
+            ) : step === 'opening' ? (
               <div style={styles.questionBlock}>
                 <div style={styles.questionNumber}>Selamat Datang</div>
                 <h2 style={{ ...styles.promptText, fontSize: '32px' }}>Bapak/Ibu yang terhormat,</h2>
@@ -503,9 +570,9 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
       {/* Floating Navigation Controls */}
       <div style={styles.floatingNav}>
         <button
-          style={{ ...styles.navBtn, opacity: step === 'opening' ? 0.3 : 1 }}
+          style={{ ...styles.navBtn, opacity: step === 'identity' ? 0.3 : 1 }}
           onClick={handlePrevious}
-          disabled={step === 'opening' || isSubmitting}
+          disabled={step === 'identity' || isSubmitting}
         >
           <ArrowUp size={24} />
         </button>
@@ -718,4 +785,20 @@ const styles = {
     color: '#475569',
     transition: 'all 0.2s',
   },
+  fieldLabel: {
+    fontSize: '1rem',
+    fontWeight: 700,
+    color: '#475569',
+    margin: '0 0 0.25rem 0',
+  } as React.CSSProperties,
+  requiredMark: {
+    color: '#ef4444',
+    marginLeft: '2px',
+  } as React.CSSProperties,
+  fieldHint: {
+    fontSize: '13px',
+    color: '#94a3b8',
+    margin: '0.5rem 0 0 0',
+    lineHeight: 1.5,
+  } as React.CSSProperties,
 };

@@ -19,12 +19,15 @@ export type ScoreSummary = {
   inisial: string
   totalScore: number
   date: Date
+  nama?: string | null
+  noTelp?: string | null
+  signature?: string | null
 }
 
 export interface QuestionnaireRepository {
   getTemplate(): Promise<FormTemplateWithQuestions | null>
   getTemplateWithResponses(): Promise<(FormTemplate & { questions: Question[]; responses: (Response & { answers: Answer[] })[] }) | null>
-  saveResponse(formTemplateId: string, inisial: string, totalScore: number, answers: { questionId: string; value: string }[]): Promise<Response>
+  saveResponse(formTemplateId: string, inisial: string, totalScore: number, answers: { questionId: string; value: string }[], extra?: { nama?: string; noTelp?: string; signature?: string }): Promise<Response>
   countResponses(): Promise<number>
   getAnalytics(inisial?: string): Promise<AnalyticsQuestion[]>
   getScoresByInisial(): Promise<ScoreSummary[]>
@@ -57,13 +60,17 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
     formTemplateId: string,
     inisial: string,
     totalScore: number,
-    answers: { questionId: string; value: string }[]
+    answers: { questionId: string; value: string }[],
+    extra?: { nama?: string; noTelp?: string; signature?: string }
   ): Promise<Response> {
     return this.prisma.response.create({
       data: {
         formTemplateId,
         inisial,
         totalScore,
+        nama: extra?.nama,
+        noTelp: extra?.noTelp,
+        signature: extra?.signature,
         answers: {
           create: answers.map((ans) => ({
             questionId: ans.questionId,
@@ -126,7 +133,10 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
     return responses.map(r => ({
       inisial: r.inisial as string,
       totalScore: r.totalScore as number,
-      date: r.createdAt
+      date: r.createdAt,
+      nama: r.nama,
+      noTelp: r.noTelp,
+      signature: r.signature,
     }))
   }
 }

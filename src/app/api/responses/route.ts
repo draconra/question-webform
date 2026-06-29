@@ -6,8 +6,20 @@ import { randomUUID } from 'crypto'
 
 const MAX_INISIAL_LEN = 10
 const MAX_ANSWER_VALUE_LEN = 500
+const MAX_NAMA_LEN = 100
+const MAX_NO_TELP_LEN = 30
+const MAX_SIGNATURE_LEN = 400_000 // ~300 KB base64 PNG
 
-function validateBody(body: unknown): { formTemplateId: string; inisial: string; answers: { questionId: string; value: string }[] } {
+type ValidatedBody = {
+  formTemplateId: string
+  inisial: string
+  nama?: string
+  noTelp?: string
+  signature?: string
+  answers: { questionId: string; value: string }[]
+}
+
+function validateBody(body: unknown): ValidatedBody {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     throw Object.assign(new Error('Payload tidak valid'), { validation: true })
   }
@@ -22,6 +34,43 @@ function validateBody(body: unknown): { formTemplateId: string; inisial: string;
   if (b.inisial.length > MAX_INISIAL_LEN) {
     throw Object.assign(new Error(`Inisial maksimal ${MAX_INISIAL_LEN} karakter`), { validation: true })
   }
+
+  let nama: string | undefined
+  if (b.nama !== undefined) {
+    if (typeof b.nama !== 'string') {
+      throw Object.assign(new Error('nama harus berupa string'), { validation: true })
+    }
+    if (b.nama.length > MAX_NAMA_LEN) {
+      throw Object.assign(new Error(`Nama maksimal ${MAX_NAMA_LEN} karakter`), { validation: true })
+    }
+    nama = b.nama.trim() || undefined
+  }
+
+  let noTelp: string | undefined
+  if (b.noTelp !== undefined) {
+    if (typeof b.noTelp !== 'string') {
+      throw Object.assign(new Error('noTelp harus berupa string'), { validation: true })
+    }
+    if (b.noTelp.length > MAX_NO_TELP_LEN) {
+      throw Object.assign(new Error('No telp terlalu panjang'), { validation: true })
+    }
+    noTelp = b.noTelp.trim() || undefined
+  }
+
+  let signature: string | undefined
+  if (b.signature !== undefined) {
+    if (typeof b.signature !== 'string') {
+      throw Object.assign(new Error('signature harus berupa string'), { validation: true })
+    }
+    if (b.signature.length > MAX_SIGNATURE_LEN) {
+      throw Object.assign(new Error('Ukuran tanda tangan terlalu besar'), { validation: true })
+    }
+    if (b.signature && !b.signature.startsWith('data:image/')) {
+      throw Object.assign(new Error('Format tanda tangan tidak valid'), { validation: true })
+    }
+    signature = b.signature || undefined
+  }
+
   if (!Array.isArray(b.answers)) {
     throw Object.assign(new Error('Answers wajib berupa array'), { validation: true })
   }
@@ -43,6 +92,9 @@ function validateBody(body: unknown): { formTemplateId: string; inisial: string;
   return {
     formTemplateId: (b.formTemplateId as string).trim(),
     inisial: (b.inisial as string).trim(),
+    nama,
+    noTelp,
+    signature,
     answers: b.answers as { questionId: string; value: string }[],
   }
 }
@@ -74,6 +126,9 @@ export async function POST(req: Request) {
       {
         formTemplateId: body.formTemplateId,
         inisial: body.inisial,
+        nama: body.nama,
+        noTelp: body.noTelp,
+        signature: body.signature,
         answers: body.answers,
       },
       questionVarNames

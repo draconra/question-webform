@@ -7,6 +7,9 @@ type ScoreSummary = {
   inisial: string
   totalScore: number
   date: string
+  nama?: string | null
+  noTelp?: string | null
+  signature?: string | null
 }
 
 export default function ScoreTable() {
@@ -44,6 +47,9 @@ export default function ScoreTable() {
         <thead>
           <tr>
             <th style={styles.th}>Inisial Pasien</th>
+            <th style={styles.th}>Nama</th>
+            <th style={styles.th}>No. Telp</th>
+            <th style={styles.th}>TTD</th>
             <th style={styles.th}>Waktu Pengisian</th>
             <th style={styles.th}>Skor Total IMSA (0-60)</th>
             <th style={styles.th}>Status Validasi</th>
@@ -55,13 +61,23 @@ export default function ScoreTable() {
             return (
               <tr key={`${score.inisial}-${idx}`} style={styles.tr}>
                 <td style={styles.td}>
-                  <button 
+                  <button
                     onClick={() => router.push(`?inisial=${encodeURIComponent(score.inisial)}`)}
                     style={styles.inisialButton}
                     title="Lihat analitik untuk pasien ini"
                   >
                     {score.inisial}
                   </button>
+                </td>
+                <td style={styles.td}>{score.nama ?? <span style={styles.emptyCell}>—</span>}</td>
+                <td style={{ ...styles.td, fontFamily: 'monospace', fontSize: '13px' }}>
+                  {score.noTelp ?? <span style={styles.emptyCell}>—</span>}
+                </td>
+                <td style={{ ...styles.tdScore, textAlign: 'center' as const }}>
+                  {score.signature
+                    ? <img src={score.signature} alt="TTD" style={styles.signatureThumb} />
+                    : <span style={styles.emptyCell}>—</span>
+                  }
                 </td>
                 <td style={styles.td}>
                   {date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -70,8 +86,8 @@ export default function ScoreTable() {
                   </span>
                 </td>
                 <td style={styles.tdScore}>
-                  <span style={{ 
-                    ...styles.scoreBadge, 
+                  <span style={{
+                    ...styles.scoreBadge,
                     backgroundColor: score.totalScore > 30 ? '#fee2e2' : '#ecfdf5',
                     color: score.totalScore > 30 ? '#b91c1c' : '#047857'
                   }}>
@@ -193,5 +209,19 @@ const styles = {
     border: '2px dashed #e2e8f0',
     borderRadius: '24px',
     margin: '2rem',
+  } as React.CSSProperties,
+  signatureThumb: {
+    display: 'inline-block',
+    width: '72px',
+    height: '36px',
+    objectFit: 'contain' as const,
+    border: '1px solid #e2e8f0',
+    borderRadius: '6px',
+    backgroundColor: 'white',
+    verticalAlign: 'middle',
+  } as React.CSSProperties,
+  emptyCell: {
+    color: '#cbd5e1',
+    fontSize: '16px',
   } as React.CSSProperties,
 }

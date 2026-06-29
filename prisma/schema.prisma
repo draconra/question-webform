@@ -93,6 +93,9 @@ model Response {
   id             String       @id @default(cuid())
   formTemplateId String
   inisial        String?      // Patient identifier initial
+  nama           String?      // Patient full name
+  noTelp         String?      // Phone number — stored pre-masked (first 4 + last 2 digits visible)
+  signature      String?      // Hand-drawn signature as PNG data URL (base64)
   totalScore     Int?         // Computed IMSA total score (0–60)
   createdAt      DateTime     @default(now())
 
