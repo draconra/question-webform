@@ -7,15 +7,21 @@ type AnalyticsQuestion = {
   variableName: string
   prompt: string
   type: string
-  options: Array<{ label: string; value: string | number }> | null
+  options: Array<{ label: string; value: string | number; requiresText?: boolean }> | null
   answerDistribution: Record<string, number>
 }
 
 /**
- * For a single-user view, answerDistribution has exactly the key(s) that user
- * chose. Resolve raw stored keys back to human-readable option labels.
+ * Resolve stored key(s) back to human-readable labels.
+ * When an option has requiresText=true (Lainnya) and the user typed companion text,
+ * show that text directly instead of the option label "Lainnya".
+ *
+ * @param companionText - free-text from the paired _lainnya companion question, if any.
  */
-function getAnswerInfo(question: AnalyticsQuestion): { labels: string[]; rawKeys: string[] } {
+function getAnswerInfo(
+  question: AnalyticsQuestion,
+  companionText: string | null
+): { labels: string[]; rawKeys: string[] } {
   const keys = Object.keys(question.answerDistribution)
   if (keys.length === 0) return { labels: ['—'], rawKeys: ['—'] }
 
@@ -26,11 +32,14 @@ function getAnswerInfo(question: AnalyticsQuestion): { labels: string[]; rawKeys
 
   const labels = keys.map((key) => {
     // Look up by stored value first (Q15: letter codes 'a','b',…),
-    // then by label string (fallback for older radio answers stored by label).
+    // then by label string (fallback for older answers stored by label).
     const opt = question.options!.find(
       (o) => String(o.value) === key || o.label === key
     )
-    return opt ? opt.label : key
+    if (!opt) return key
+    // Lainnya option: show companion text if user filled it in
+    if (opt.requiresText && companionText) return companionText
+    return opt.label
   })
 
   return { labels, rawKeys: keys }
@@ -67,8 +76,24 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
     return <div style={styles.errorBox}>{error}</div>
   }
 
+  // Build companion lookup: parentVariableName → free-text typed by user.
+  // Companion variableName = parentVariableName + '_lainnya' (8 chars) — same convention as Wizard.
+  const companionTextMap = new Map<string, string>()
+  for (const q of questions) {
+    if (q.variableName.endsWith('_lainnya')) {
+      const parentVarName = q.variableName.slice(0, -8)
+      // Single-user view: answerDistribution has exactly 1 key = the typed text
+      const text = Object.keys(q.answerDistribution)[0] ?? ''
+      if (text) companionTextMap.set(parentVarName, text)
+    }
+  }
+
+  // Show only answered non-companion questions. Companion _lainnya rows are
+  // folded into their parent's label column and must not appear as own rows.
   const questionsWithAnswers = questions.filter(
-    (q) => Object.keys(q.answerDistribution).length > 0
+    (q) =>
+      !q.variableName.endsWith('_lainnya') &&
+      Object.keys(q.answerDistribution).length > 0
   )
 
   if (questionsWithAnswers.length === 0) {
@@ -92,7 +117,8 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
         </thead>
         <tbody>
           {questionsWithAnswers.map((q, idx) => {
-            const { labels, rawKeys } = getAnswerInfo(q)
+            const companionText = companionTextMap.get(q.variableName) ?? null
+            const { labels, rawKeys } = getAnswerInfo(q, companionText)
             return (
               <tr key={q.id} style={styles.tr}>
                 <td style={{ ...styles.td, ...styles.tdNo }}>{idx + 1}</td>
