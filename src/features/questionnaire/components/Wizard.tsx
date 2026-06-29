@@ -24,8 +24,10 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
 
   const questions = template.questions;
 
-  // Filter out companion "_lainnya" questions — they are rendered inline, not as steps.
-  const steppedQuestions = questions.filter(q => !q.variableName.endsWith('_lainnya'));
+  // Filter out companion "_lainnya" questions and pra_2_pendamping (rendered inline) — not standalone steps.
+  const steppedQuestions = questions.filter(
+    q => !q.variableName.endsWith('_lainnya') && q.variableName !== 'pra_2_pendamping'
+  );
 
   // Build companion map: parent question ID → companion question.
   // Key insight: companion variableName = parentVariableName + '_lainnya' (8 chars).
@@ -69,13 +71,41 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   const companionRequired = radioOptRequiresText || checkboxRequiresText;
   const companionAnswer = currentCompanion ? (answers[currentCompanion.id] ?? '') : '';
 
+  // PRA-2 conditional sub-question — rendered inline on the parent step
+  const pra2SubQuestion = questions.find(q => q.variableName === 'pra_2_pendamping');
+  const pra2SubCompanion = pra2SubQuestion ? companionMap.get(pra2SubQuestion.id) : undefined;
+  const isPra2Parent = currentQuestion?.variableName === 'pra_2_pengisi_kuesioner';
+  // Sub appears only when parent index is 1 (b) or 2 (c); index 0 (a) = no sub
+  const showPra2Sub = isPra2Parent && (selectedRadioIdx === 1 || selectedRadioIdx === 2);
+  const subAnswer = pra2SubQuestion ? (answers[pra2SubQuestion.id] ?? '') : '';
+  const subOpts = pra2SubQuestion?.options ?? [];
+  const subSelectedIdx = subAnswer !== '' ? parseInt(subAnswer, 10) : -1;
+  const subRequiresText = subSelectedIdx >= 0 && !isNaN(subSelectedIdx)
+    ? (subOpts[subSelectedIdx]?.requiresText ?? false)
+    : false;
+  const subCompanionAnswer = pra2SubCompanion ? (answers[pra2SubCompanion.id] ?? '') : '';
+
   const canProceed = step === 'identity'
     ? nama.trim() !== '' && noTelp.replace(/\D/g, '').length >= 7 && signature !== '' && consent
     : step === 'opening'
       ? true
       : step === 'inisial'
         ? inisial.trim() !== ''
-        : currentAnswer !== '' && (!companionRequired || companionAnswer.trim() !== '');
+        : currentAnswer !== '' && (!companionRequired || companionAnswer.trim() !== '')
+            && (!showPra2Sub || (subAnswer !== '' && (!subRequiresText || subCompanionAnswer.trim() !== '')));
+
+  // Helper: set parent answer for PRA-2, clearing sub-question data when option (a) is chosen.
+  const setParentAnswer = (qId: string, idx: number) => {
+    setAnswers(prev => {
+      const next = { ...prev, [qId]: String(idx) };
+      // Option a (index 0) = self-fill, no companion → clear sub answer + companion text
+      if (idx === 0 && pra2SubQuestion) {
+        delete next[pra2SubQuestion.id];
+        if (pra2SubCompanion) delete next[pra2SubCompanion.id];
+      }
+      return next;
+    });
+  };
 
   const handleNext = async () => {
     if (!canProceed || isSubmitting) return;
@@ -189,9 +219,13 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
         const opt = options[idx];
         if (opt) {
           const qId = currentQuestion.id;
-          setAnswers(prev => ({ ...prev, [qId]: String(idx) }));
-          // Auto-advance only when the chosen option does NOT require text input
-          if (!opt.requiresText) {
+          if (isPra2Parent) {
+            setParentAnswer(qId, idx);
+          } else {
+            setAnswers(prev => ({ ...prev, [qId]: String(idx) }));
+          }
+          // Auto-advance only when option does NOT require text AND this is not the PRA-2 parent
+          if (!opt.requiresText && !isPra2Parent) {
             if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
             advanceTimerRef.current = setTimeout(() => {
               setStep(prev => {
@@ -265,10 +299,13 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                   key={index}
                   onClick={() => {
                     const qId = currentQuestion.id;
-                    const val = String(index);
-                    setAnswers(prev => ({ ...prev, [qId]: val }));
-                    // Auto-advance on click only when option does NOT require text
-                    if (!opt.requiresText) {
+                    if (isPra2Parent) {
+                      setParentAnswer(qId, index);
+                    } else {
+                      setAnswers(prev => ({ ...prev, [qId]: String(index) }));
+                    }
+                    // Auto-advance on click only when option does NOT require text AND not PRA-2 parent
+                    if (!opt.requiresText && !isPra2Parent) {
                       if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
                       advanceTimerRef.current = setTimeout(() => {
                         setStep(prev => {
@@ -311,6 +348,52 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                 }}
                 autoFocus
               />
+            </div>
+          )}
+          {/* PRA-2 conditional sub-question: shown when parent = option b or c */}
+          {showPra2Sub && pra2SubQuestion && (
+            <div style={styles.subQuestionWrapper}>
+              <p style={styles.subQuestionLabel}>Siapa pendamping Anda?</p>
+              <div style={styles.optionsList}>
+                {subOpts.map((subOpt, subIdx) => {
+                  const isSubSelected = subAnswer === String(subIdx);
+                  return (
+                    <div
+                      key={subIdx}
+                      onClick={() => {
+                        const sId = pra2SubQuestion.id;
+                        setAnswers(prev => ({ ...prev, [sId]: String(subIdx) }));
+                      }}
+                      style={{
+                        ...styles.subOptionCard,
+                        borderColor: isSubSelected ? 'var(--primary-color)' : 'rgba(0,0,0,0.1)',
+                        backgroundColor: isSubSelected ? 'rgba(0, 86, 179, 0.05)' : 'white',
+                        transform: isSubSelected ? 'scale(1.02)' : 'scale(1)',
+                      }}
+                    >
+                      <div style={styles.optionKeyLabel}>{String.fromCharCode(97 + subIdx)}</div>
+                      <div style={{ flex: 1 }}>{subOpt.label}</div>
+                      {isSubSelected && <Check size={20} color="var(--primary-color)" />}
+                    </div>
+                  );
+                })}
+              </div>
+              {subRequiresText && pra2SubCompanion && (
+                <div style={styles.companionWrapper}>
+                  <p style={styles.companionLabel}>Sebutkan:</p>
+                  <input
+                    type="text"
+                    style={{ ...styles.textInput, fontSize: '1.1rem' }}
+                    placeholder="Ketik di sini..."
+                    value={subCompanionAnswer}
+                    onChange={(e) => {
+                      const cId = pra2SubCompanion.id;
+                      const v = e.target.value;
+                      setAnswers(prev => ({ ...prev, [cId]: v }));
+                    }}
+                  />
+                </div>
+              )}
             </div>
           )}
         </>
@@ -561,8 +644,8 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                 {renderInput()}
                 {error && <p style={styles.errorText}>{error}</p>}
 
-                {/* Show OK/Submit button for non-radio inputs, last step, or when Lainnya text is required */}
-                {(currentQuestion?.type !== 'radio' || lastStep || companionRequired) && (
+                {/* Show OK/Submit button for non-radio inputs, last step, Lainnya text required, or PRA-2 parent */}
+                {(currentQuestion?.type !== 'radio' || lastStep || companionRequired || isPra2Parent) && (
                   <div style={{ display: 'flex', alignItems: 'center', marginTop: '2rem' }}>
                     <button
                       style={{ ...styles.primaryBtn, opacity: canProceed ? 1 : 0.5 }}
@@ -834,5 +917,30 @@ const styles = {
     color: '#475569',
     lineHeight: 1.6,
     fontWeight: 500,
+  } as React.CSSProperties,
+  subQuestionWrapper: {
+    marginTop: '2rem',
+    paddingTop: '1.5rem',
+    borderTop: '2px solid #e2e8f0',
+  } as React.CSSProperties,
+  subQuestionLabel: {
+    fontSize: '1.1rem',
+    fontWeight: 700,
+    color: '#334155',
+    marginBottom: '1rem',
+  } as React.CSSProperties,
+  subOptionCard: {
+    display: 'flex',
+    alignItems: 'center',
+    padding: '1rem 1.25rem',
+    backgroundColor: 'white',
+    border: '2px solid transparent',
+    borderRadius: '12px',
+    fontSize: '1.1rem',
+    fontWeight: 500,
+    cursor: 'pointer',
+    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+    boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)',
+    color: '#334155',
   } as React.CSSProperties,
 };

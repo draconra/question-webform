@@ -195,7 +195,6 @@ export const IMSA_QUESTIONS: SeedQuestion[] = [
     type: 'radio',
     prompt: 'Jika ada yang membantu pengisian, siapa pendamping Anda?',
     options: [
-      { label: 'Tidak berlaku (saya mengisi sendiri)', value: 0 },
       { label: 'Anggota Keluarga/Pendamping/Teman', value: 1 },
       { label: 'Perawat', value: 2 },
       { label: 'Peneliti', value: 3 },
