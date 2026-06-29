@@ -540,7 +540,6 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
             ) : (
               <div style={styles.questionBlock}>
                 <div style={styles.questionNumber}>
-                  {currentStep + 1} <span style={{ opacity: 0.4 }}>/ {steppedQuestions.length}</span>
                   <span style={styles.inisialBadge}>{inisial}</span>
                 </div>
                 <h2 style={styles.promptText}>{currentQuestion?.prompt}</h2>
