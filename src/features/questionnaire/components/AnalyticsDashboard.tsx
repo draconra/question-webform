@@ -133,7 +133,6 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
               <tr key={q.id} style={styles.tr}>
                 <td style={{ ...styles.td, ...styles.tdNo }}>{idx + 1}</td>
                 <td style={styles.td}>
-                  <span style={styles.varName}>{q.variableName}</span>
                   <span style={styles.prompt}>{q.prompt}</span>
                 </td>
                 <td style={styles.td}>
@@ -143,7 +142,7 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
                 </td>
                 <td style={{ ...styles.td, ...styles.tdValue }}>
                   {isIdentityQuestion(q.variableName)
-                    ? <code style={{ ...styles.rawCode, color: '#94a3b8' }}>0</code>
+                    ? <span style={{ color: '#cbd5e1' }}>—</span>
                     : <code style={styles.rawCode}>{rawKeys.join(', ')}</code>
                   }
                 </td>
@@ -198,16 +197,6 @@ const styles = {
   } as React.CSSProperties,
   tdValue: {
     textAlign: 'center' as const,
-  } as React.CSSProperties,
-  varName: {
-    display: 'block',
-    fontSize: '11px',
-    color: '#94a3b8',
-    fontFamily: 'monospace',
-    textTransform: 'uppercase' as const,
-    letterSpacing: '0.08em',
-    fontWeight: 700,
-    marginBottom: '4px',
   } as React.CSSProperties,
   prompt: {
     display: 'block',
