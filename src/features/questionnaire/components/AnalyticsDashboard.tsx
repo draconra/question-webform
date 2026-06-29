@@ -11,6 +11,16 @@ type AnalyticsQuestion = {
   answerDistribution: Record<string, number>
 }
 
+const SCORED_PREFIXES = ['hist_', 'saat_ini_', 'prog_', 'pra_', 'tamb_']
+
+/**
+ * Identity/demographic questions (before PRA-1) carry no IMSA scoring weight.
+ * They are detected by the absence of any known scored prefix.
+ */
+function isIdentityQuestion(variableName: string): boolean {
+  return !SCORED_PREFIXES.some((p) => variableName.startsWith(p))
+}
+
 /**
  * Resolve stored key(s) back to human-readable labels.
  * When an option has requiresText=true (Lainnya) and the user typed companion text,
@@ -132,7 +142,10 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
                   ))}
                 </td>
                 <td style={{ ...styles.td, ...styles.tdValue }}>
-                  <code style={styles.rawCode}>{rawKeys.join(', ')}</code>
+                  {isIdentityQuestion(q.variableName)
+                    ? <code style={{ ...styles.rawCode, color: '#94a3b8' }}>0</code>
+                    : <code style={styles.rawCode}>{rawKeys.join(', ')}</code>
+                  }
                 </td>
               </tr>
             )
