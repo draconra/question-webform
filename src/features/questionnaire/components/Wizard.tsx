@@ -16,6 +16,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   const [nama, setNama] = useState('');
   const [noTelp, setNoTelp] = useState('');
   const [signature, setSignature] = useState('');
+  const [consent, setConsent] = useState(false);
   const [inisial, setInisial] = useState('');
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,7 +70,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   const companionAnswer = currentCompanion ? (answers[currentCompanion.id] ?? '') : '';
 
   const canProceed = step === 'identity'
-    ? nama.trim() !== '' && noTelp.replace(/\D/g, '').length >= 7 && signature !== ''
+    ? nama.trim() !== '' && noTelp.replace(/\D/g, '').length >= 7 && signature !== '' && consent
     : step === 'opening'
       ? true
       : step === 'inisial'
@@ -463,6 +464,19 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                 </p>
                 <SignaturePad value={signature} onChange={setSignature} />
 
+                <label style={styles.consentRow}>
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                    style={styles.consentCheckbox}
+                  />
+                  <span style={styles.consentText}>
+                    Saya menyetujui data yang saya isikan digunakan untuk keperluan
+                    penilaian dan riset kesehatan sesuai ketentuan yang berlaku.
+                  </span>
+                </label>
+
                 {error && <p style={styles.errorText}>{error}</p>}
 
                 <div style={{ display: 'flex', alignItems: 'center', marginTop: '2rem' }}>
@@ -799,5 +813,26 @@ const styles = {
     color: '#94a3b8',
     margin: '0.5rem 0 0 0',
     lineHeight: 1.5,
+  } as React.CSSProperties,
+  consentRow: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '12px',
+    marginTop: '1.5rem',
+    cursor: 'pointer',
+  } as React.CSSProperties,
+  consentCheckbox: {
+    width: '20px',
+    height: '20px',
+    marginTop: '2px',
+    flexShrink: 0,
+    accentColor: '#2563eb',
+    cursor: 'pointer',
+  } as React.CSSProperties,
+  consentText: {
+    fontSize: '14px',
+    color: '#475569',
+    lineHeight: 1.6,
+    fontWeight: 500,
   } as React.CSSProperties,
 };
