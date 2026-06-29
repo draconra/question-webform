@@ -1,6 +1,7 @@
 import { FormTemplate, Question, Answer, Response } from '@prisma/client'
 import { QuestionnaireRepository, AnalyticsQuestion, ScoreSummary } from './repository'
 import { FormTemplateWithQuestions, ParsedFormTemplate, ParsedQuestion, QuestionOption } from './types'
+import { scoreOrganisasiLayanan, Q15_VARNAME } from './utils'
 
 export type SubmitAnswersInput = {
   formTemplateId: string
@@ -114,17 +115,8 @@ export function calculateImsaScore(
   // Codes come from rawAnswersByVarName as comma-joined string (e.g. "a,c,e")
   // Score rule: h|i=3 | (c|d)&e=2 | c|d|e=1 | a|b|f|g/j/k (or none)=0
   {
-    const raw15 = rawAnswersByVarName['saat_ini_15_pengaturan_layanan'] ?? ''
-    const codes = new Set(raw15.split(',').map(s => s.trim()).filter(Boolean))
-    let d15 = 0
-    if (codes.has('h') || codes.has('i')) {
-      d15 = 3
-    } else if ((codes.has('c') || codes.has('d')) && codes.has('e')) {
-      d15 = 2
-    } else if (codes.has('c') || codes.has('d') || codes.has('e')) {
-      d15 = 1
-    }
-    domains['15_pengaturan_layanan'] = d15
+    const raw15 = rawAnswersByVarName[Q15_VARNAME] ?? ''
+    domains['15_pengaturan_layanan'] = scoreOrganisasiLayanan(raw15.split(','))
   }
 
   // Domain 16: Koordinasi perawatan — direct

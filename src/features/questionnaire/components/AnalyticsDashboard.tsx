@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { NESTED_SUBS, NESTED_SUB_VARS } from '../utils'
+import { NESTED_SUBS, NESTED_SUB_VARS, Q15_VARNAME, scoreOrganisasiLayanan } from '../utils'
 
 type AnalyticsQuestion = {
   id: string
@@ -165,9 +165,11 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
                   )}
                 </td>
                 <td style={{ ...styles.td, ...styles.tdValue }}>
-                  {isNonScoredQuestion(q.variableName)
-                    ? <span style={{ color: '#cbd5e1' }}>—</span>
-                    : <code style={styles.rawCode}>{rawKeys.join(', ')}</code>
+                  {q.variableName === Q15_VARNAME
+                    ? <code style={styles.rawCode}>{scoreOrganisasiLayanan(Object.keys(q.answerDistribution))}</code>
+                    : isNonScoredQuestion(q.variableName)
+                      ? <span style={{ color: '#cbd5e1' }}>—</span>
+                      : <code style={styles.rawCode}>{rawKeys.join(', ')}</code>
                   }
                 </td>
               </tr>

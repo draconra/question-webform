@@ -32,3 +32,24 @@ export const NESTED_SUBS: Record<string, NestedSubConfig> = {
 
 /** All variableNames that are rendered inline and must be excluded from stepped questions. */
 export const NESTED_SUB_VARS: string[] = Object.values(NESTED_SUBS).map(s => s.subVar)
+
+/** variableName for Q15 (multi-select organisasi layanan, checkbox). */
+export const Q15_VARNAME = 'saat_ini_15_pengaturan_layanan'
+
+/**
+ * Compute IMSA domain-15 score (organisasi layanan saat ini) from selected
+ * option codes (letters a–k).
+ *
+ * Rules:
+ *   h | i                         → 3
+ *   (c | d) & e                   → 2
+ *   c | d | e                     → 1
+ *   a / b / f / g / j / k / none  → 0
+ */
+export function scoreOrganisasiLayanan(codes: Iterable<string>): number {
+  const set = new Set([...codes].map(c => c.trim()).filter(Boolean))
+  if (set.has('h') || set.has('i')) return 3
+  if ((set.has('c') || set.has('d')) && set.has('e')) return 2
+  if (set.has('c') || set.has('d') || set.has('e')) return 1
+  return 0
+}
