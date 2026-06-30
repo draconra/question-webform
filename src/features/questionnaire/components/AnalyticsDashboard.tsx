@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { NESTED_SUBS, NESTED_SUB_VARS, Q15_VARNAME, scoreOrganisasiLayanan } from '../utils'
+import React, { useEffect, useState } from 'react'
+import { NESTED_SUBS, NESTED_SUB_VARS, Q15_VARNAME, scoreOrganisasiLayanan, QUESTION_DOMAIN_MAP, DOMAIN_ORDER, DOMAIN_COLORS } from '../utils'
 import ImsaResultSummary from './ImsaResultSummary'
 
 type AnalyticsQuestion = {
@@ -140,44 +140,68 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
           </tr>
         </thead>
         <tbody>
-          {questionsWithAnswers.map((q, idx) => {
-            const companionText = companionTextMap.get(q.variableName) ?? null
-            const { labels, rawKeys } = getAnswerInfo(q, companionText)
-            // If this is a parent with a nested sub, fold sub answer below parent answer
-            const subQ = subByParent.get(q.variableName)
-            const subHasAnswer = subQ && Object.keys(subQ.answerDistribution).length > 0
-            const subCompText = subQ ? (companionTextMap.get(subQ.variableName) ?? null) : null
-            const subInfo = subHasAnswer ? getAnswerInfo(subQ!, subCompText) : null
-            return (
-              <tr key={q.id} style={styles.tr}>
-                <td style={{ ...styles.td, ...styles.tdNo }}>{idx + 1}</td>
-                <td style={styles.td}>
-                  <span style={styles.prompt}>{q.prompt}</span>
-                </td>
-                <td style={styles.td}>
-                  {labels.map((lbl, i) => (
-                    <span key={i} style={styles.labelLine}>{lbl}</span>
-                  ))}
-                  {subInfo && (
-                    <span style={styles.subAnswerBlock}>
-                      <span style={styles.subAnswerLabel}>{subQ!.prompt}</span>
-                      {subInfo.labels.map((lbl, i) => (
+          {(() => {
+            // Group questions by domain; non-scored → 'Data Diri & Tambahan'
+            const grouped = new Map<string, typeof questionsWithAnswers>()
+            for (const domain of DOMAIN_ORDER) grouped.set(domain, [])
+            for (const q of questionsWithAnswers) {
+              const domain = QUESTION_DOMAIN_MAP[q.variableName] ?? 'Data Diri & Tambahan'
+              grouped.get(domain)!.push(q)
+            }
+            let rowNum = 0
+            const rows: React.ReactNode[] = []
+            for (const domain of DOMAIN_ORDER) {
+              const qs = grouped.get(domain)!
+              if (qs.length === 0) continue
+              const color = DOMAIN_COLORS[domain as keyof typeof DOMAIN_COLORS]
+              rows.push(
+                <tr key={`header-${domain}`}>
+                  <td colSpan={4} style={{ ...styles.domainHeader, backgroundColor: color.bg, color: color.fg }}>
+                    {domain}
+                  </td>
+                </tr>
+              )
+              for (const q of qs) {
+                rowNum++
+                const companionText = companionTextMap.get(q.variableName) ?? null
+                const { labels, rawKeys } = getAnswerInfo(q, companionText)
+                const subQ = subByParent.get(q.variableName)
+                const subHasAnswer = subQ && Object.keys(subQ.answerDistribution).length > 0
+                const subCompText = subQ ? (companionTextMap.get(subQ.variableName) ?? null) : null
+                const subInfo = subHasAnswer ? getAnswerInfo(subQ!, subCompText) : null
+                rows.push(
+                  <tr key={q.id} style={styles.tr}>
+                    <td style={{ ...styles.td, ...styles.tdNo }}>{rowNum}</td>
+                    <td style={styles.td}>
+                      <span style={styles.prompt}>{q.prompt}</span>
+                    </td>
+                    <td style={styles.td}>
+                      {labels.map((lbl, i) => (
                         <span key={i} style={styles.labelLine}>{lbl}</span>
                       ))}
-                    </span>
-                  )}
-                </td>
-                <td style={{ ...styles.td, ...styles.tdValue }}>
-                  {q.variableName === Q15_VARNAME
-                    ? <code style={styles.rawCode}>{scoreOrganisasiLayanan(Object.keys(q.answerDistribution))}</code>
-                    : isNonScoredQuestion(q.variableName)
-                      ? <span style={{ color: '#cbd5e1' }}>—</span>
-                      : <code style={styles.rawCode}>{rawKeys.join(', ')}</code>
-                  }
-                </td>
-              </tr>
-            )
-          })}
+                      {subInfo && (
+                        <span style={styles.subAnswerBlock}>
+                          <span style={styles.subAnswerLabel}>{subQ!.prompt}</span>
+                          {subInfo.labels.map((lbl, i) => (
+                            <span key={i} style={styles.labelLine}>{lbl}</span>
+                          ))}
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ ...styles.td, ...styles.tdValue }}>
+                      {q.variableName === Q15_VARNAME
+                        ? <code style={styles.rawCode}>{scoreOrganisasiLayanan(Object.keys(q.answerDistribution))}</code>
+                        : isNonScoredQuestion(q.variableName)
+                          ? <span style={{ color: '#cbd5e1' }}>—</span>
+                          : <code style={styles.rawCode}>{rawKeys.join(', ')}</code>
+                      }
+                    </td>
+                  </tr>
+                )
+              }
+            }
+            return rows
+          })()}
         </tbody>
       </table>
     </div>
@@ -211,6 +235,14 @@ const styles = {
   } as React.CSSProperties,
   tr: {
     borderBottom: '1px solid #f1f5f9',
+  } as React.CSSProperties,
+  domainHeader: {
+    padding: '8px 1.5rem',
+    fontSize: '12px',
+    fontWeight: 700,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.07em',
+    borderBottom: '1px solid rgba(0,0,0,0.06)',
   } as React.CSSProperties,
   td: {
     padding: '1rem 1.5rem',

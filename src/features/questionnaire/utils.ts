@@ -54,6 +54,53 @@ export function scoreOrganisasiLayanan(codes: Iterable<string>): number {
   return 0
 }
 
+// ─── Domain grouping ─────────────────────────────────────────────────────────
+
+/**
+ * Maps each scored variableName to its IMSA domain group.
+ * Questions not listed here are non-scored (identity/PRA/Tamb).
+ */
+export const QUESTION_DOMAIN_MAP: Record<string, string> = {
+  // Biologis — Q1a/1b, 2, 3, 4a/4b, 17
+  hist_1a_masalah_fisik:           'Biologis',
+  hist_1b_penyakit_kronis:         'Biologis',
+  hist_2_dilema_diagnostik:        'Biologis',
+  saat_ini_3_keparahan_gejala:     'Biologis',
+  saat_ini_4a_pemahaman_dokter:    'Biologis',
+  saat_ini_4b_pengobatan_tepat:    'Biologis',
+  prog_17_perkiraan_fisik:         'Biologis',
+  // Psikologis — Q5, 6, 7, 8, 18
+  hist_5_cara_mengatasi:           'Psikologis',
+  hist_6_kesehatan_mental:         'Psikologis',
+  saat_ini_7_resistensi_pengobatan:'Psikologis',
+  saat_ini_8_gejala_mental:        'Psikologis',
+  prog_18_perkiraan_mental:        'Psikologis',
+  // Sosial — Q9a/9c, 10, 11, 12, 19
+  hist_9a_memiliki_pekerjaan:      'Sosial',
+  hist_9c_kegiatan_luang:          'Sosial',
+  hist_10_hubungan_sosial:         'Sosial',
+  saat_ini_11_stabilitas_tempat_tinggal: 'Sosial',
+  saat_ini_12_dukungan_sosial:     'Sosial',
+  prog_19_perkiraan_sosial:        'Sosial',
+  // Sistem Kesehatan — Q13, 14, 15, 16, 20
+  hist_13_akses_perawatan:         'Sistem Kesehatan',
+  hist_14_pengalaman_pengobatan:   'Sistem Kesehatan',
+  saat_ini_15_pengaturan_layanan:  'Sistem Kesehatan',
+  saat_ini_16_koordinasi_perawatan:'Sistem Kesehatan',
+  prog_20_kebutuhan_perawatan:     'Sistem Kesehatan',
+}
+
+export const DOMAIN_ORDER = ['Data Diri & Tambahan', 'Biologis', 'Psikologis', 'Sosial', 'Sistem Kesehatan'] as const
+export type DomainName = typeof DOMAIN_ORDER[number]
+
+export const DOMAIN_COLORS: Record<DomainName, { bg: string; fg: string }> = {
+  'Data Diri & Tambahan': { bg: '#f1f5f9', fg: '#475569' },
+  'Biologis':             { bg: '#dbeafe', fg: '#1d4ed8' },
+  'Psikologis':           { bg: '#ede9fe', fg: '#7c3aed' },
+  'Sosial':               { bg: '#fef3c7', fg: '#b45309' },
+  'Sistem Kesehatan':     { bg: '#d1fae5', fg: '#065f46' },
+}
+
 // ─── IMSA scoring engine ──────────────────────────────────────────────────────
 
 /** Total max score for IM-SA (Manual IM-SA 2017). */
