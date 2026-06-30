@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { NESTED_SUBS, NESTED_SUB_VARS, Q15_VARNAME, scoreOrganisasiLayanan } from '../utils'
+import ImsaResultSummary from './ImsaResultSummary'
 
 type AnalyticsQuestion = {
   id: string
@@ -126,6 +127,8 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
   }
 
   return (
+    <>
+    <ImsaResultSummary questions={questions} />
     <div style={styles.container}>
       <table style={styles.table}>
         <thead>
@@ -178,6 +181,7 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
         </tbody>
       </table>
     </div>
+    </>
   )
 }
 
