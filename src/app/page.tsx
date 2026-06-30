@@ -20,7 +20,7 @@ export default function Home() {
           </h1>
           
           <p style={styles.description}>
-            Indonesian Medical Severity Assessment. Platform evaluasi tingkat keparahan medis yang dirancang untuk memberikan penilaian cepat, akurat, dan terstruktur bagi pasien.
+            INTERMED Self Assessment. Platform evaluasi tingkat keparahan medis yang dirancang untuk memberikan penilaian cepat, akurat, dan terstruktur bagi pasien.
           </p>
           
           <div style={styles.ctaGroup}>
