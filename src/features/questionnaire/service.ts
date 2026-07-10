@@ -10,6 +10,7 @@ export type SubmitAnswersInput = {
   formTemplateId: string
   inisial: string
   nama?: string
+  alamat?: string
   noTelp?: string
   signature?: string
   answers: Array<{ questionId: string; value: string }>
@@ -108,7 +109,7 @@ export class QuestionnaireService {
       input.inisial.trim(),
       totalScore,
       input.answers,
-      { nama: input.nama, noTelp: input.noTelp, signature: input.signature }
+      { nama: input.nama, alamat: input.alamat, noTelp: input.noTelp, signature: input.signature }
     )
   }
 

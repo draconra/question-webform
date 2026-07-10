@@ -11,9 +11,10 @@ import { maskPhone, NESTED_SUBS, NESTED_SUB_VARS } from '../utils';
 
 export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   const router = useRouter();
-  // Step -3 = Identity, Step -2 = Opening, Step -1 = Inisial collection screen, 0+ = questions
-  const [step, setStep] = useState<'identity' | 'opening' | 'inisial' | number>('identity');
+  // Step -4 = Info sheet, -3 = Identity/consent, -2 = Opening, -1 = Inisial, 0+ = questions
+  const [step, setStep] = useState<'info' | 'identity' | 'opening' | 'inisial' | number>('info');
   const [nama, setNama] = useState('');
+  const [alamat, setAlamat] = useState('');
   const [noTelp, setNoTelp] = useState('');
   const [signature, setSignature] = useState('');
   const [consent, setConsent] = useState(false);
@@ -46,11 +47,12 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   // Ref for auto-advance timer — cleared on unmount / before next advance
   const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const currentStep = step === 'identity' ? -3 : step === 'opening' ? -2 : step === 'inisial' ? -1 : (step as number);
+  const isIntroStep = step === 'info' || step === 'identity' || step === 'opening' || step === 'inisial';
+  const currentStep = step === 'info' ? -4 : step === 'identity' ? -3 : step === 'opening' ? -2 : step === 'inisial' ? -1 : (step as number);
   const lastStep = typeof step === 'number' && currentStep === steppedQuestions.length - 1;
-  const progressPercentage = (step === 'identity' || step === 'opening' || step === 'inisial') ? 0 : ((currentStep + 1) / steppedQuestions.length) * 100;
+  const progressPercentage = isIntroStep ? 0 : ((currentStep + 1) / steppedQuestions.length) * 100;
 
-  const currentQuestion = (step === 'identity' || step === 'opening' || step === 'inisial') ? null : steppedQuestions[currentStep];
+  const currentQuestion = isIntroStep ? null : steppedQuestions[currentStep];
   const currentAnswer = currentQuestion ? (answers[currentQuestion.id] || '') : '';
 
   // Companion question for the current step (if any)
@@ -85,8 +87,10 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
     : false;
   const subCompanionAnswer = subCompanion ? (answers[subCompanion.id] ?? '') : '';
 
-  const canProceed = step === 'identity'
-    ? nama.trim() !== '' && noTelp.replace(/\D/g, '').length >= 7 && signature !== '' && consent
+  const canProceed = step === 'info'
+    ? true
+    : step === 'identity'
+    ? nama.trim() !== '' && alamat.trim() !== '' && noTelp.replace(/\D/g, '').length >= 7 && signature !== '' && consent
     : step === 'opening'
       ? true
       : step === 'inisial'
@@ -110,7 +114,9 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
     if (!canProceed || isSubmitting) return;
 
     setDirection(1);
-    if (step === 'identity') {
+    if (step === 'info') {
+      setStep('identity');
+    } else if (step === 'identity') {
       setStep('opening');
     } else if (step === 'opening') {
       setStep('inisial');
@@ -127,7 +133,9 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
     if (isSubmitting) return;
     setDirection(-1);
 
-    if (step === 'opening') {
+    if (step === 'identity') {
+      setStep('info');
+    } else if (step === 'opening') {
       setStep('identity');
     } else if (step === 'inisial') {
       setStep('opening');
@@ -146,6 +154,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
         formTemplateId: template.id,
         inisial: inisial.trim(),
         nama: nama.trim(),
+        alamat: alamat.trim(),
         noTelp: maskPhone(noTelp),
         signature,
         answers: Object.entries(answers).map(([questionId, rawVal]) => {
@@ -505,15 +514,179 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             style={styles.stepContainer}
           >
-            {step === 'identity' ? (
+            {step === 'info' ? (
               <div style={styles.questionBlock}>
-                <div style={styles.questionNumber}>Identitas</div>
-                <h2 style={{ ...styles.promptText, fontSize: 'clamp(22px, 4vw, 32px)' }}>
-                  Data Diri &amp; Tanda Tangan
-                </h2>
+                <div style={styles.questionNumber}>Lembar Informasi</div>
+                <h2 style={styles.docTitle}>LEMBAR INFORMASI RESPONDEN</h2>
+                <p style={styles.docSubtitle}>
+                  Beyond Disease Counts : A Quantitative Analysis of Complexity Patterns in
+                  Multimorbid Patient Populations in Yogyakarta using the Indonesian Version
+                  of Intermed-SA Questionnare
+                </p>
+
+                <div style={styles.infoBody}>
+                  <p>
+                    Kami, Aghnaa Gayatri, Hari Koesnanto, Wahyudi Istiono, tim peneliti dari
+                    Universitas Gadjah Mada, akan melakukan penelitian yang berjudul &ldquo;Beyond
+                    Disease Counts : A Quantitative Analysis of Complexity Patterns in Multimorbid
+                    Patient Populations in Yogyakarta using the Indonesian Version of Intermed-SA
+                    Questionnare&rdquo;. Penelitian ini merupakan bagian dari hibah penelitian pasca
+                    doktoral kami di Universitas Gadjah Mada yang dibiayai oleh hibah dana masyarakat
+                    Fakultas Kedokteran, Kesehatan Masyarakat, dan Keperawatan UGM. Anda kami harapkan
+                    untuk ikut serta menjadi responden penelitian ini. Sebelum Anda memutuskan
+                    keikutsertaan Anda, kami mohon untuk terlebih dahulu membaca informasi berikut
+                    dengan seksama, untuk memahami maksud penelitian ini dan hal-hal yang akan terjadi
+                    jika Anda berpartisipasi. Apabila terdapat hal yang perlu ditanyakan, Anda dapat
+                    secara langsung menanyakan kepada kami.
+                  </p>
+
+                  <h3 style={styles.infoHeading}>Tujuan penelitian</h3>
+                  <p>
+                    Tujuan penelitian ini secara umum adalah untuk memetakan sebaran tingkat
+                    kompleksitas biopsikososial berdasarkan kuesioner INTERMED-SA pada pasien dengan
+                    multimorbiditas di layanan kesehatan primer di Daerah Istimewa Yogyakarta (DIY).
+                    Secara khusus bertujuan untuk :
+                  </p>
+                  <p>
+                    1. Mendeskripsikan sebaran kompleksitas biopsikososial pada pasien multimorbid di
+                    layanan primer menggunakan kuesioner INTERMED-SA.
+                  </p>
+                  <p>
+                    2. Menganalisis hubungan antara karakteristik sosiodemografi, pola morbiditas, dan
+                    utilisasi layanan kesehatan dengan tingkat kompleksitas pasien multimorbid.
+                  </p>
+
+                  <h3 style={styles.infoHeading}>Kenapa Anda terpilih</h3>
+                  <p>
+                    Anda telah terpilih menjadi salah satu responden dalam penelitian kami. Anda kami
+                    pilih karena merupakan pasien dengan penyakit kronis di layanan primer yang
+                    memberikan pelayanan pada pasien multimorbiditas. Akan ada kurang lebih 233 pasien
+                    dari puskesmas/klinik pratama/Praktik dokter Mandiri yang kami undang untuk
+                    mengikuti penelitian ini.
+                  </p>
+
+                  <h3 style={styles.infoHeading}>Keikutsertaan</h3>
+                  <p>
+                    Keputusan untuk ikut serta dalam penelitian ini ada pada Anda. Apabila Anda
+                    bersedia untuk ikut serta, Anda akan diberikan lembar informasi ini untuk disimpan
+                    dan akan kami minta untuk menandatangani lembar persetujuan. Walaupun sudah
+                    memutuskan untuk bersedia, Anda dapat sewaktu-waktu mengundurkan diri tanpa perlu
+                    memberikan alasan. Pengunduran diri Anda tidak akan dikenakan denda atau sanksi
+                    apapun.
+                  </p>
+                  <p>
+                    Jika Anda bersedia ikut serta dalam penelitian ini, Anda akan kami minta untuk
+                    mengisi kuesioner yang berisi 23 pertanyaan dan formulir data sosiodemografi (usia,
+                    jenis kelamin, pendidikan, pekerjaan, fasilitas kesehatan I, Jumlah dan jenis
+                    diagnosis penyakit kronis yang diderita untuk mengonfirmasi status multimorbiditas)
+                    yang dapat diisi sendiri, dibantu orang lain, maupun diisikan oleh orang lain atas
+                    persetujuan Anda. Estimasi waktu pengisian kuesioner ini kurang lebih 15-30 menit.
+                    Namun, kami tidak memberi batasan waktu untuk mengisi kuesioner ini.
+                  </p>
+
+                  <h3 style={styles.infoHeading}>Risiko dan manfaat keikutsertaan</h3>
+                  <p>
+                    Keikutsertaan Anda tidak akan berisiko apapun terhadap layanan yang Anda dapatkan
+                    di layanan primer. Sebaliknya, tidak ada manfaat langsung yang dapat Anda rasakan
+                    terhadap keikutsertaan Anda dalam penelitian ini. Namun, keikutsertaan Anda dapat
+                    membantu kami memahami lebih lanjut mengenai kuesioner pengkajian objektif
+                    kompleksitas pada pasien beberapa penyakit kronis di layanan primer, yang
+                    kedepannya dapat dijadikan masukan untuk pengembangan model pelayanan komprehensif
+                    di layanan primer yang lebih baik lagi.
+                  </p>
+
+                  <h3 style={styles.infoHeading}>Kerahasiaan</h3>
+                  <p>
+                    Seluruh informasi yang Anda berikan dalam penelitian ini akan dijaga
+                    kerahasiaannya. Identitas Anda tidak akan dicantumkan dan hanya akan diganti dengan
+                    kode atau inisial. Data yang dikumpulkan meliputi informasi sosiodemografi (seperti
+                    usia, jenis kelamin, pendidikan, pekerjaan, fasilitas kesehatan tingkat pertama)
+                    serta jumlah dan jenis diagnosis penyakit kronis untuk mengonfirmasi status
+                    multimorbiditas, yang akan digunakan semata-mata untuk keperluan analisis dan
+                    pelaporan penelitian. Dengan demikian, pendapat atau informasi yang Anda berikan
+                    tidak dapat diidentifikasi oleh pihak di luar tim peneliti.
+                  </p>
+                  <p>
+                    Namun, apabila terdapat informasi yang menunjukkan adanya risiko membahayakan
+                    keselamatan Anda atau orang lain, peneliti berhak mengambil langkah yang
+                    diperlukan, termasuk menghubungi pihak yang berwenang sesuai dengan ketentuan yang
+                    berlaku.
+                  </p>
+
+                  <h3 style={styles.infoHeading}>Pelaporan dan pemaparan hasil</h3>
+                  <p>
+                    Hasil dari penelitian ini akan kami tulis dalam artikel ilmiah dan dipublikasikan
+                    dalam jurnal dan konferensi ilmiah. Apabila Anda tertarik untuk membaca hasil
+                    penelitian ini, Anda dapat menghubungi kami untuk kemudian kami berikan salinan
+                    hasil yang telah kami susun. Informasi pribadi Anda tidak akan kami muat dalam
+                    publikasi penelitian ini.
+                  </p>
+
+                  <h3 style={styles.infoHeading}>Kompensasi</h3>
+                  <p>
+                    Jika Anda bersedia mengikuti penelitian ini, dengan mengisi kuesioner, Anda akan
+                    mendapatkan kompensasi berupa cinderamata <em>pouch</em>.
+                  </p>
+
+                  <h3 style={styles.infoHeading}>Pendanaan dan persetujuan</h3>
+                  <p>
+                    Penelitian ini didanai oleh Dana Masyarakat Tahun Anggaran 2026 Fakultas
+                    Kedokteran, Kesehatan Masyarakat, dan keperawatan Universitas Gadjah Mada.
+                    Penelitian ini telah dikaji dan disetujui oleh Komite Etik Fakultas Kedokteran,
+                    Kesehatan Masyarakat, dan Keperawatan Universitas Gadjah Mada.
+                  </p>
+
+                  <h3 style={styles.infoHeading}>Informasi tambahan</h3>
+                  <p>
+                    Jika ada hal yang belum jelas yang ingin Anda tanyakan lebih lanjut, Anda dapat
+                    menghubungi kami, dr. Aulia pada no. HP 082138280351 atau surel
+                    auliaastagina@mail.ugm.ac.id. Anda juga dapat menghubungi Komisi Etik Fakultas
+                    Kedokteran, Kesehatan Masyarakat, dan Keperawatan Universitas Gadjah Mada di nomor
+                    telpon 08112666869, atau di surel mhrec_fmugm@ugm.ac.id.
+                  </p>
+
+                  <p style={{ marginTop: '1.5rem' }}>
+                    Terima kasih atas waktu yang telah Anda luangkan untuk berpartisipasi dalam
+                    penelitian kami.
+                  </p>
+                  <p style={{ marginTop: '1.5rem' }}>Hormat saya,</p>
+                  <p style={{ margin: 0, fontWeight: 600 }}>dr. Aghnaa Gayatri, M.Sc</p>
+                  <p style={{ margin: 0 }}>01/04/2026</p>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', marginTop: '2rem' }}>
+                  <button style={styles.primaryBtn} onClick={handleNext}>
+                    Lanjut <ArrowDown size={18} style={{ marginLeft: 8 }} />
+                  </button>
+                  <span style={styles.pressEnterHint}>Tekan <strong>Enter ↵</strong></span>
+                </div>
+              </div>
+            ) : step === 'identity' ? (
+              <div style={styles.questionBlock}>
+                <div style={styles.questionNumber}>Lembar Persetujuan</div>
+                <h2 style={styles.docTitle}>LEMBAR PERSETUJUAN</h2>
+
+                <p style={styles.consentSubHeading}>Judul Penelitian:</p>
+                <p style={styles.docSubtitle}>
+                  Beyond Disease Counts : A Quantitative Analysis of Complexity Patterns in
+                  Multimorbid Patient Populations in Yogyakarta using the Indonesian Version
+                  of Intermed-SA Questionnare
+                </p>
+
+                <p style={styles.consentSubHeading}>Tim Peneliti:</p>
+                <div style={styles.teamList}>
+                  <p style={{ margin: 0 }}>dr. Aghnaa Gayatri, M.Sc, PhD, Sp.KKLP, Subsp.FOMC</p>
+                  <p style={{ margin: 0 }}>Prof. dr. Hari Koesnanto Josep, MPH, DrPH, Sp.KKLP</p>
+                  <p style={{ margin: 0 }}>Dr. dr. Wahyudi Istiono, M.Kes, Sp.KKLP Subsp. COPC</p>
+                  <p style={{ margin: 0 }}>dr. Aulia Astagina Rahmadini</p>
+                </div>
+
+                <p style={{ ...styles.consentSubHeading, marginTop: '2rem' }}>
+                  Saya yang bertanda tangan di bawah ini :
+                </p>
 
                 <p style={styles.fieldLabel}>
-                  Nama Lengkap <span style={styles.requiredMark}>*</span>
+                  Nama <span style={styles.requiredMark}>*</span>
                 </p>
                 <input
                   type="text"
@@ -526,7 +699,19 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                 />
 
                 <p style={{ ...styles.fieldLabel, marginTop: '2rem' }}>
-                  No. Telepon <span style={styles.requiredMark}>*</span>
+                  Alamat <span style={styles.requiredMark}>*</span>
+                </p>
+                <textarea
+                  style={{ ...styles.textInput, fontSize: '1.25rem', resize: 'vertical', minHeight: '3.5rem' }}
+                  value={alamat}
+                  onChange={(e) => setAlamat(e.target.value)}
+                  placeholder="Alamat tempat tinggal..."
+                  rows={2}
+                  autoComplete="street-address"
+                />
+
+                <p style={{ ...styles.fieldLabel, marginTop: '2rem' }}>
+                  No HP <span style={styles.requiredMark}>*</span>
                 </p>
                 <input
                   type="tel"
@@ -541,6 +726,32 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                   Nomor disimpan ter-enkripsi — hanya 4 digit depan &amp; 2 digit belakang yang terlihat.
                 </p>
 
+                <ul style={styles.consentBullets}>
+                  <li>
+                    Saya telah membaca dan memahami informasi pada lembar informasi tertanggal 1 April
+                    2026 untuk penelitian di atas dan sudah diberikan kesempatan untuk bertanya.
+                  </li>
+                  <li>
+                    Saya memahami bahwa keikutsertaan saya bersifat sukarela dan saya bebas
+                    mengundurkan diri kapanpun, tanpa alasan, tanpa ada pengaruh terhadap hak-hak legal
+                    saya.
+                  </li>
+                  <li>
+                    Saya setuju untuk data saya disimpan secara anonim dan versi elektronik dari data
+                    tersebut akan disimpan dalam komputer yang terkunci dengan kata sandi.
+                  </li>
+                  <li>
+                    Saya memahami bahwa informasi yang saya berikan akan disimpan untuk penelitian
+                    selanjutnya dan tidak akan dapat teridentifikasi pada analisis yang dilakukan.
+                  </li>
+                  <li>
+                    Saya memahami bahwa hasil analisis penelitian ini akan ditampilkan dalam laporan
+                    atau publikasi ilmiah, hal ini akan dilakukan dengan memastikan bahwa identitas saya
+                    tidak dapat teridentifikasi.
+                  </li>
+                  <li>Saya setuju untuk ikut serta dalam penelitian ini.</li>
+                </ul>
+
                 <p style={{ ...styles.fieldLabel, marginTop: '2rem' }}>
                   Tanda Tangan Digital <span style={styles.requiredMark}>*</span>
                 </p>
@@ -554,8 +765,8 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                     style={styles.consentCheckbox}
                   />
                   <span style={styles.consentText}>
-                    Saya menyetujui data yang saya isikan digunakan untuk keperluan
-                    penilaian dan riset kesehatan sesuai ketentuan yang berlaku.
+                    Saya telah membaca, memahami, dan menyetujui seluruh pernyataan di atas serta
+                    bersedia ikut serta dalam penelitian ini.
                   </span>
                 </label>
 
@@ -665,9 +876,9 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
       {/* Floating Navigation Controls */}
       <div style={styles.floatingNav}>
         <button
-          style={{ ...styles.navBtn, opacity: step === 'identity' ? 0.3 : 1 }}
+          style={{ ...styles.navBtn, opacity: step === 'info' ? 0.3 : 1 }}
           onClick={handlePrevious}
-          disabled={step === 'identity' || isSubmitting}
+          disabled={step === 'info' || isSubmitting}
         >
           <ArrowUp size={24} />
         </button>
@@ -880,6 +1091,57 @@ const styles = {
     color: '#475569',
     transition: 'all 0.2s',
   },
+  docTitle: {
+    fontSize: 'clamp(20px, 4vw, 28px)',
+    fontWeight: 800,
+    lineHeight: 1.25,
+    marginBottom: '0.75rem',
+    color: '#0f172a',
+    letterSpacing: '-0.02em',
+    fontFamily: "'Outfit', sans-serif",
+  } as React.CSSProperties,
+  docSubtitle: {
+    fontSize: '1rem',
+    fontWeight: 600,
+    color: '#334155',
+    lineHeight: 1.5,
+    marginBottom: '1.5rem',
+  } as React.CSSProperties,
+  infoBody: {
+    fontSize: '1rem',
+    color: '#334155',
+    lineHeight: 1.7,
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.85rem',
+  } as React.CSSProperties,
+  infoHeading: {
+    fontSize: '1.1rem',
+    fontWeight: 700,
+    color: '#0f172a',
+    margin: '1rem 0 0 0',
+  } as React.CSSProperties,
+  consentSubHeading: {
+    fontSize: '1rem',
+    fontWeight: 700,
+    color: '#0f172a',
+    margin: '0 0 0.5rem 0',
+  } as React.CSSProperties,
+  teamList: {
+    fontSize: '0.95rem',
+    color: '#334155',
+    lineHeight: 1.6,
+  } as React.CSSProperties,
+  consentBullets: {
+    fontSize: '0.95rem',
+    color: '#334155',
+    lineHeight: 1.6,
+    margin: '2rem 0 0 0',
+    paddingLeft: '1.25rem',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.6rem',
+  } as React.CSSProperties,
   fieldLabel: {
     fontSize: '1rem',
     fontWeight: 700,

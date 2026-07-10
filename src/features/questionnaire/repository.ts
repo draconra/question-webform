@@ -27,7 +27,7 @@ export type ScoreSummary = {
 export interface QuestionnaireRepository {
   getTemplate(): Promise<FormTemplateWithQuestions | null>
   getTemplateWithResponses(): Promise<(FormTemplate & { questions: Question[]; responses: (Response & { answers: Answer[] })[] }) | null>
-  saveResponse(formTemplateId: string, inisial: string, totalScore: number, answers: { questionId: string; value: string }[], extra?: { nama?: string; noTelp?: string; signature?: string }): Promise<Response>
+  saveResponse(formTemplateId: string, inisial: string, totalScore: number, answers: { questionId: string; value: string }[], extra?: { nama?: string; noTelp?: string; signature?: string; alamat?: string }): Promise<Response>
   countResponses(): Promise<number>
   getAnalytics(inisial?: string): Promise<AnalyticsQuestion[]>
   getScoresByInisial(): Promise<ScoreSummary[]>
@@ -61,7 +61,7 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
     inisial: string,
     totalScore: number,
     answers: { questionId: string; value: string }[],
-    extra?: { nama?: string; noTelp?: string; signature?: string }
+    extra?: { nama?: string; noTelp?: string; signature?: string; alamat?: string }
   ): Promise<Response> {
     return this.prisma.response.create({
       data: {
@@ -69,6 +69,7 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
         inisial,
         totalScore,
         nama: extra?.nama,
+        alamat: extra?.alamat,
         noTelp: extra?.noTelp,
         signature: extra?.signature,
         answers: {

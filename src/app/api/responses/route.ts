@@ -7,6 +7,7 @@ import { randomUUID } from 'crypto'
 const MAX_INISIAL_LEN = 10
 const MAX_ANSWER_VALUE_LEN = 500
 const MAX_NAMA_LEN = 100
+const MAX_ALAMAT_LEN = 300
 const MAX_NO_TELP_LEN = 30
 const MAX_SIGNATURE_LEN = 400_000 // ~300 KB base64 PNG
 
@@ -14,6 +15,7 @@ type ValidatedBody = {
   formTemplateId: string
   inisial: string
   nama?: string
+  alamat?: string
   noTelp?: string
   signature?: string
   answers: { questionId: string; value: string }[]
@@ -44,6 +46,17 @@ function validateBody(body: unknown): ValidatedBody {
       throw Object.assign(new Error(`Nama maksimal ${MAX_NAMA_LEN} karakter`), { validation: true })
     }
     nama = b.nama.trim() || undefined
+  }
+
+  let alamat: string | undefined
+  if (b.alamat !== undefined) {
+    if (typeof b.alamat !== 'string') {
+      throw Object.assign(new Error('alamat harus berupa string'), { validation: true })
+    }
+    if (b.alamat.length > MAX_ALAMAT_LEN) {
+      throw Object.assign(new Error(`Alamat maksimal ${MAX_ALAMAT_LEN} karakter`), { validation: true })
+    }
+    alamat = b.alamat.trim() || undefined
   }
 
   let noTelp: string | undefined
@@ -93,6 +106,7 @@ function validateBody(body: unknown): ValidatedBody {
     formTemplateId: (b.formTemplateId as string).trim(),
     inisial: (b.inisial as string).trim(),
     nama,
+    alamat,
     noTelp,
     signature,
     answers: b.answers as { questionId: string; value: string }[],
@@ -127,6 +141,7 @@ export async function POST(req: Request) {
         formTemplateId: body.formTemplateId,
         inisial: body.inisial,
         nama: body.nama,
+        alamat: body.alamat,
         noTelp: body.noTelp,
         signature: body.signature,
         answers: body.answers,
