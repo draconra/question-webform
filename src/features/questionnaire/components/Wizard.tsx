@@ -23,6 +23,11 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Info sheet / consent date — always "today" (date of filling), not a fixed date.
+  const today = new Date();
+  const todayLong = today.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+  const todayShort = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+
   const questions = template.questions;
 
   // Filter out companion "_lainnya" questions and nested sub-questions (rendered inline) — not standalone steps.
@@ -621,7 +626,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                   </p>
                   <p style={{ marginTop: '1.5rem' }}>Hormat kami,</p>
                   <p style={{ margin: 0, fontWeight: 600 }}>Tim Peneliti</p>
-                  <p style={{ margin: 0 }}>01/04/2026</p>
+                  <p style={{ margin: 0 }}>{todayShort}</p>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', marginTop: '2rem' }}>
@@ -698,8 +703,8 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
 
                 <ul style={styles.consentBullets}>
                   <li>
-                    Saya telah membaca dan memahami informasi pada lembar informasi tertanggal 1 April
-                    2026 untuk penelitian di atas dan sudah diberikan kesempatan untuk bertanya.
+                    Saya telah membaca dan memahami informasi pada lembar informasi tertanggal {todayLong}{' '}
+                    untuk penelitian di atas dan sudah diberikan kesempatan untuk bertanya.
                   </li>
                   <li>
                     Saya memahami bahwa keikutsertaan saya bersifat sukarela dan saya bebas
