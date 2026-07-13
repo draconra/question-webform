@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowUp, ArrowDown, Check } from 'lucide-react';
@@ -43,9 +43,6 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
 
   // Track scroll direction for animations
   const [direction, setDirection] = useState(1);
-
-  // Ref for auto-advance timer — cleared on unmount / before next advance
-  const advanceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isIntroStep = step === 'info' || step === 'identity' || step === 'opening' || step === 'inisial';
   const currentStep = step === 'info' ? -4 : step === 'identity' ? -3 : step === 'opening' ? -2 : step === 'inisial' ? -1 : (step as number);
@@ -232,19 +229,6 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
           } else {
             setAnswers(prev => ({ ...prev, [qId]: String(idx) }));
           }
-          // Auto-advance only when option does NOT require text AND this is not the PRA-2 parent
-          if (!opt.requiresText && !isParentWithSub) {
-            if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
-            advanceTimerRef.current = setTimeout(() => {
-              setStep(prev => {
-                if (typeof prev === 'number' && prev < steppedQuestions.length - 1) {
-                  setDirection(1);
-                  return prev + 1;
-                }
-                return prev;
-              });
-            }, 400);
-          }
         }
       }
 
@@ -270,7 +254,6 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, inisial, isSubmitting]);
@@ -311,19 +294,6 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                       setParentAnswer(qId, index);
                     } else {
                       setAnswers(prev => ({ ...prev, [qId]: String(index) }));
-                    }
-                    // Auto-advance on click only when option does NOT require text AND not PRA-2 parent
-                    if (!opt.requiresText && !isParentWithSub) {
-                      if (advanceTimerRef.current) clearTimeout(advanceTimerRef.current);
-                      advanceTimerRef.current = setTimeout(() => {
-                        setStep(prev => {
-                          if (typeof prev === 'number' && prev < steppedQuestions.length - 1) {
-                            setDirection(1);
-                            return prev + 1;
-                          }
-                          return prev;
-                        });
-                      }, 400);
                     }
                   }}
                   style={{
@@ -649,8 +619,8 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                     Terima kasih atas waktu yang telah Anda luangkan untuk berpartisipasi dalam
                     penelitian kami.
                   </p>
-                  <p style={{ marginTop: '1.5rem' }}>Hormat saya,</p>
-                  <p style={{ margin: 0, fontWeight: 600 }}>dr. Aghnaa Gayatri, M.Sc</p>
+                  <p style={{ marginTop: '1.5rem' }}>Hormat kami,</p>
+                  <p style={{ margin: 0, fontWeight: 600 }}>Tim Peneliti</p>
                   <p style={{ margin: 0 }}>01/04/2026</p>
                 </div>
 
@@ -854,19 +824,31 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                 {renderInput()}
                 {error && <p style={styles.errorText}>{error}</p>}
 
-                {/* Show OK/Submit button for non-radio inputs, last step, Lainnya text required, or PRA-2 parent */}
-                {(currentQuestion?.type !== 'radio' || lastStep || companionRequired || isParentWithSub) && (
-                  <div style={{ display: 'flex', alignItems: 'center', marginTop: '2rem' }}>
-                    <button
-                      style={{ ...styles.primaryBtn, opacity: canProceed ? 1 : 0.5 }}
-                      onClick={handleNext}
-                      disabled={!canProceed || isSubmitting}
-                    >
-                      {lastStep ? 'Kirim' : 'OK'} <Check size={18} style={{ marginLeft: 8 }} />
-                    </button>
-                    <span style={styles.pressEnterHint}>Tekan <strong>Enter ↵</strong></span>
-                  </div>
+                {lastStep && (
+                  <p style={styles.confirmText}>
+                    Apakah Anda yakin dengan jawaban Anda? Anda masih dapat mengubah
+                    jawaban Anda. Klik <strong>Selesai</strong> jika Anda yakin sudah
+                    menyelesaikan jawaban Anda.
+                  </p>
                 )}
+
+                <div style={{ display: 'flex', alignItems: 'center', marginTop: '2rem', gap: '0.75rem' }}>
+                  <button
+                    style={{ ...styles.secondaryBtn, opacity: currentStep === 0 ? 1 : 1 }}
+                    onClick={handlePrevious}
+                    disabled={isSubmitting}
+                  >
+                    <ArrowUp size={18} style={{ marginRight: 8 }} /> Kembali
+                  </button>
+                  <button
+                    style={{ ...styles.primaryBtn, opacity: canProceed ? 1 : 0.5 }}
+                    onClick={handleNext}
+                    disabled={!canProceed || isSubmitting}
+                  >
+                    {lastStep ? 'Selesai' : 'Lanjut'} <Check size={18} style={{ marginLeft: 8 }} />
+                  </button>
+                  <span style={styles.pressEnterHint}>Tekan <strong>Enter ↵</strong></span>
+                </div>
               </div>
             )}
           </motion.div>
@@ -1052,6 +1034,29 @@ const styles = {
     transition: 'all 0.2s',
     boxShadow: '0 10px 15px -3px rgba(37, 99, 235, 0.2)',
   },
+  secondaryBtn: {
+    backgroundColor: 'white',
+    color: '#334155',
+    border: '2px solid #e2e8f0',
+    borderRadius: '12px',
+    padding: '1rem 1.75rem',
+    fontSize: '1.25rem',
+    fontWeight: 700,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    transition: 'all 0.2s',
+  } as React.CSSProperties,
+  confirmText: {
+    fontSize: '1rem',
+    color: '#475569',
+    lineHeight: 1.6,
+    marginTop: '1.5rem',
+    padding: '1rem 1.25rem',
+    backgroundColor: '#eff6ff',
+    borderRadius: '12px',
+    border: '1px solid rgba(37, 99, 235, 0.15)',
+  } as React.CSSProperties,
   pressEnterHint: {
     marginLeft: '1.25rem',
     fontSize: '0.875rem',
