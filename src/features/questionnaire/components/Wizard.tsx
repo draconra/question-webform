@@ -1242,11 +1242,11 @@ const styles = {
   pressEnterHint: {
     marginLeft: '1.25rem',
     fontSize: '0.875rem',
-    color: '#94a3b8',
+    color: '#64748b',
     fontWeight: 500,
   },
   errorText: {
-    color: '#ef4444',
+    color: '#dc2626',
     fontSize: '1rem',
     fontWeight: 500,
     marginTop: '1rem',
@@ -1336,12 +1336,12 @@ const styles = {
     margin: '0 0 0.25rem 0',
   } as React.CSSProperties,
   requiredMark: {
-    color: '#ef4444',
+    color: '#dc2626',
     marginLeft: '2px',
   } as React.CSSProperties,
   fieldHint: {
     fontSize: '13px',
-    color: '#94a3b8',
+    color: '#64748b',
     margin: '0.5rem 0 0 0',
     lineHeight: 1.5,
   } as React.CSSProperties,
