@@ -612,7 +612,6 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
           >
             {step === 'info' ? (
               <div style={styles.questionBlock}>
-                <div style={styles.questionNumber}>Lembar Informasi</div>
                 <h2 style={styles.docTitle}>LEMBAR INFORMASI RESPONDEN</h2>
                 <p style={styles.docSubtitle}>
                   Beyond Disease Counts : A Quantitative Analysis of Complexity Patterns in
@@ -759,7 +758,6 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
               </div>
             ) : step === 'identity' ? (
               <div style={styles.questionBlock}>
-                <div style={styles.questionNumber}>Lembar Persetujuan</div>
                 <h2 style={styles.docTitle}>LEMBAR PERSETUJUAN</h2>
 
                 <p style={styles.consentSubHeading}>Judul Penelitian:</p>
