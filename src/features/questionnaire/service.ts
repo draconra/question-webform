@@ -1,5 +1,5 @@
 import { FormTemplate, Question, Answer, Response } from '@prisma/client'
-import { QuestionnaireRepository, AnalyticsQuestion, ScoreSummary } from './repository'
+import { QuestionnaireRepository, AnalyticsQuestion, ScoreSummary, ConsentResponse } from './repository'
 import { FormTemplateWithQuestions, ParsedFormTemplate, ParsedQuestion, QuestionOption } from './types'
 import { calculateImsaScore } from './utils'
 
@@ -48,6 +48,10 @@ export class QuestionnaireService {
 
   async getScoresByInisial(): Promise<ScoreSummary[]> {
     return this.repository.getScoresByInisial()
+  }
+
+  async getConsentResponse(id: string): Promise<ConsentResponse | null> {
+    return this.repository.getConsentResponse(id)
   }
 
   async countResponses(): Promise<number> {

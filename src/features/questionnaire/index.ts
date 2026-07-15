@@ -4,5 +4,5 @@
  */
 export { QuestionnaireService } from './service'
 export { PrismaQuestionnaireRepository } from './repository'
-export type { QuestionnaireRepository, FormTemplateWithQuestions, AnalyticsQuestion } from './repository'
+export type { QuestionnaireRepository, FormTemplateWithQuestions, AnalyticsQuestion, ScoreSummary, ConsentResponse } from './repository'
 export type { SubmitAnswersInput } from './service'

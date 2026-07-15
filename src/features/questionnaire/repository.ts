@@ -16,12 +16,25 @@ export type AnalyticsQuestion = {
 }
 
 export type ScoreSummary = {
+  id: string
   inisial: string
   totalScore: number
   date: Date
   nama?: string | null
   noTelp?: string | null
-  signature?: string | null
+  /** Whether a signature was captured — the raw image is no longer shipped to the dashboard table. */
+  hasSignature: boolean
+}
+
+/** Full PII payload needed to render a signed consent PDF for one response. */
+export type ConsentResponse = {
+  id: string
+  inisial: string | null
+  nama: string | null
+  alamat: string | null
+  noTelp: string | null
+  signature: string | null
+  createdAt: Date
 }
 
 export interface QuestionnaireRepository {
@@ -31,6 +44,7 @@ export interface QuestionnaireRepository {
   countResponses(): Promise<number>
   getAnalytics(inisial?: string): Promise<AnalyticsQuestion[]>
   getScoresByInisial(): Promise<ScoreSummary[]>
+  getConsentResponse(id: string): Promise<ConsentResponse | null>
 }
 
 /**
@@ -132,12 +146,27 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
     })
 
     return responses.map(r => ({
+      id: r.id,
       inisial: r.inisial as string,
       totalScore: r.totalScore as number,
       date: r.createdAt,
       nama: r.nama,
       noTelp: r.noTelp,
-      signature: r.signature,
+      hasSignature: r.signature != null,
     }))
+  }
+
+  async getConsentResponse(id: string): Promise<ConsentResponse | null> {
+    const r = await this.prisma.response.findUnique({ where: { id } })
+    if (!r) return null
+    return {
+      id: r.id,
+      inisial: r.inisial,
+      nama: r.nama,
+      alamat: r.alamat,
+      noTelp: r.noTelp,
+      signature: r.signature,
+      createdAt: r.createdAt,
+    }
   }
 }

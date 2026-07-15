@@ -9,10 +9,100 @@ import { ParsedFormTemplate, ParsedQuestion } from '../types';
 import SignaturePad from './SignaturePad';
 import { maskPhone, NESTED_SUBS, NESTED_SUB_VARS } from '../utils';
 
+type SummaryRow = {
+  question: ParsedQuestion;
+  index: number;
+  answerText: string | null;
+  /** undefined = no companion "Lainnya" text applies to this answer; null = applies but empty; string = filled */
+  companionText?: string | null;
+  sub?: {
+    prompt: string;
+    answerText: string | null;
+    companionText?: string | null;
+    incomplete: boolean;
+  };
+  status: 'ok' | 'unanswered' | 'incomplete';
+};
+
+/**
+ * Pure summary-row builder — generalizes the per-step display logic (radio index → label,
+ * checkbox indices → labels, companion "Lainnya" text, nested sub-question) into a function
+ * of (question, answers, questions, companionMap), reused by the review/summary screen.
+ * Unlike submitForm's mapping (which stores option.value for scoring), this always shows
+ * option.label for human readability.
+ */
+function buildSummaryRow(
+  q: ParsedQuestion,
+  index: number,
+  answers: Record<string, string>,
+  questions: ParsedQuestion[],
+  companionMap: Map<string, ParsedQuestion>
+): SummaryRow {
+  const rawAnswer = answers[q.id] ?? '';
+  const opts = q.options ?? [];
+  const companion = companionMap.get(q.id);
+
+  let answerText: string | null = null;
+  let companionText: string | null | undefined;
+  let requiresTextActive = false;
+
+  if (q.type === 'radio') {
+    const idx = rawAnswer !== '' ? parseInt(rawAnswer, 10) : -1;
+    const opt = idx >= 0 && !isNaN(idx) ? opts[idx] : undefined;
+    answerText = opt ? opt.label : null;
+    requiresTextActive = !!opt?.requiresText;
+  } else if (q.type === 'checkbox') {
+    const indices = rawAnswer.split(',').filter(Boolean).map(Number);
+    const labels = indices.filter(i => !isNaN(i) && opts[i]).map(i => opts[i].label);
+    answerText = labels.length > 0 ? labels.join(', ') : null;
+    requiresTextActive = indices.some(i => !isNaN(i) && (opts[i]?.requiresText ?? false));
+  } else {
+    answerText = rawAnswer.trim() !== '' ? rawAnswer : null;
+  }
+
+  if (requiresTextActive && companion) {
+    const ct = answers[companion.id] ?? '';
+    companionText = ct.trim() !== '' ? ct : null;
+  }
+
+  // Nested sub-question (PRA-2 pendamping, 9a→9b, etc.) — only included when actually visible.
+  const nestedConfig = NESTED_SUBS[q.variableName];
+  let sub: SummaryRow['sub'];
+  if (nestedConfig) {
+    const idx = rawAnswer !== '' ? parseInt(rawAnswer, 10) : -1;
+    const showSub = nestedConfig.showWhenIdx.includes(idx);
+    if (showSub) {
+      const subQuestion = questions.find(qq => qq.variableName === nestedConfig.subVar);
+      if (subQuestion) {
+        const subOpts = subQuestion.options ?? [];
+        const subRaw = answers[subQuestion.id] ?? '';
+        const subIdx = subRaw !== '' ? parseInt(subRaw, 10) : -1;
+        const subOpt = subIdx >= 0 && !isNaN(subIdx) ? subOpts[subIdx] : undefined;
+        const subAnswerText = subOpt ? subOpt.label : null;
+        const subCompanion = companionMap.get(subQuestion.id);
+        let subCompanionText: string | null | undefined;
+        if (subOpt?.requiresText && subCompanion) {
+          const sct = answers[subCompanion.id] ?? '';
+          subCompanionText = sct.trim() !== '' ? sct : null;
+        }
+        const subIncomplete = subAnswerText === null || (!!subOpt?.requiresText && !subCompanionText);
+        sub = { prompt: subQuestion.prompt, answerText: subAnswerText, companionText: subCompanionText, incomplete: subIncomplete };
+      }
+    }
+  }
+
+  const mainIncomplete = requiresTextActive && !companionText;
+  const subIncomplete = sub?.incomplete ?? false;
+  const status: SummaryRow['status'] =
+    answerText === null ? 'unanswered' : (mainIncomplete || subIncomplete) ? 'incomplete' : 'ok';
+
+  return { question: q, index, answerText, companionText, sub, status };
+}
+
 export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   const router = useRouter();
-  // Step -4 = Info sheet, -3 = Identity/consent, -2 = Opening, -1 = Inisial, 0+ = questions
-  const [step, setStep] = useState<'info' | 'identity' | 'opening' | 'inisial' | number>('info');
+  // Step -4 = Info sheet, -3 = Identity/consent, -2 = Opening, -1 = Inisial, 0+ = questions, 'summary' = review screen
+  const [step, setStep] = useState<'info' | 'identity' | 'opening' | 'inisial' | 'summary' | number>('info');
   const [nama, setNama] = useState('');
   const [alamat, setAlamat] = useState('');
   const [noTelp, setNoTelp] = useState('');
@@ -22,6 +112,9 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Set once the user reaches the summary screen for the first time — gates the
+  // "Kembali ke summary" shortcut button so it only appears once everything is filled in.
+  const [hasSeenSummary, setHasSeenSummary] = useState(false);
 
   // Info sheet / consent date — always "today" (date of filling), not a fixed date.
   const today = new Date();
@@ -50,11 +143,16 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   const [direction, setDirection] = useState(1);
 
   const isIntroStep = step === 'info' || step === 'identity' || step === 'opening' || step === 'inisial';
-  const currentStep = step === 'info' ? -4 : step === 'identity' ? -3 : step === 'opening' ? -2 : step === 'inisial' ? -1 : (step as number);
-  const lastStep = typeof step === 'number' && currentStep === steppedQuestions.length - 1;
-  const progressPercentage = isIntroStep ? 0 : ((currentStep + 1) / steppedQuestions.length) * 100;
+  const isSummary = step === 'summary';
+  const currentStep = step === 'info' ? -4 : step === 'identity' ? -3 : step === 'opening' ? -2 : step === 'inisial' ? -1
+    : isSummary ? steppedQuestions.length : (step as number);
+  const progressPercentage = isIntroStep ? 0 : isSummary ? 100 : ((currentStep + 1) / steppedQuestions.length) * 100;
 
-  const currentQuestion = isIntroStep ? null : steppedQuestions[currentStep];
+  // Review/summary data — pure derivation over (steppedQuestions, answers, companionMap).
+  const summaryRows = steppedQuestions.map((q, i) => buildSummaryRow(q, i, answers, questions, companionMap));
+  const allAnswered = summaryRows.every(r => r.status === 'ok');
+
+  const currentQuestion = (isIntroStep || isSummary) ? null : steppedQuestions[currentStep];
   const currentAnswer = currentQuestion ? (answers[currentQuestion.id] || '') : '';
 
   // Companion question for the current step (if any)
@@ -97,8 +195,10 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
       ? true
       : step === 'inisial'
         ? inisial.trim() !== ''
-        : currentAnswer !== '' && (!companionRequired || companionAnswer.trim() !== '')
-            && (!showSub || (subAnswer !== '' && (!subRequiresText || subCompanionAnswer.trim() !== '')));
+        : isSummary
+          ? allAnswered
+          : currentAnswer !== '' && (!companionRequired || companionAnswer.trim() !== '')
+              && (!showSub || (subAnswer !== '' && (!subRequiresText || subCompanionAnswer.trim() !== '')));
 
   // Helper: set parent answer, clearing sub data when the new selection hides the sub.
   const setParentAnswer = (qId: string, idx: number) => {
@@ -113,7 +213,13 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   };
 
   const handleNext = async () => {
-    if (!canProceed || isSubmitting) return;
+    if (isSubmitting) return;
+
+    if (step === 'summary') {
+      if (allAnswered) await submitForm();
+      return;
+    }
+    if (!canProceed) return;
 
     setDirection(1);
     if (step === 'info') {
@@ -127,7 +233,8 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
     } else if (currentStep < steppedQuestions.length - 1) {
       setStep(currentStep + 1);
     } else {
-      await submitForm();
+      setStep('summary');
+      setHasSeenSummary(true);
     }
   };
 
@@ -135,7 +242,9 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
     if (isSubmitting) return;
     setDirection(-1);
 
-    if (step === 'identity') {
+    if (step === 'summary') {
+      setStep(steppedQuestions.length - 1);
+    } else if (step === 'identity') {
       setStep('info');
     } else if (step === 'opening') {
       setStep('identity');
@@ -146,6 +255,18 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
     } else if (currentStep > 0) {
       setStep(currentStep - 1);
     }
+  };
+
+  // Jump directly to a specific question from the summary screen's "Edit" button.
+  const editQuestion = (index: number) => {
+    setDirection(1);
+    setStep(index);
+  };
+
+  // Return to the summary screen from any question step (shown once hasSeenSummary is true).
+  const goToSummary = () => {
+    setDirection(1);
+    setStep('summary');
   };
 
   const submitForm = async () => {
@@ -819,6 +940,69 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                   <span style={styles.pressEnterHint}>Tekan <strong>Enter ↵</strong></span>
                 </div>
               </div>
+            ) : step === 'summary' ? (
+              <div style={styles.questionBlock}>
+                <div style={styles.questionNumber}>
+                  <span style={styles.inisialBadge}>{inisial}</span>
+                </div>
+                <h2 style={styles.promptText}>Ringkasan Jawaban</h2>
+                <p style={styles.helperText}>
+                  Periksa kembali seluruh jawaban Anda di bawah ini. Klik <strong>Edit</strong> pada
+                  pertanyaan mana pun untuk mengubah jawabannya.
+                </p>
+
+                <div style={styles.summaryList}>
+                  {summaryRows.map((row) => (
+                    <div key={row.question.id} style={styles.summaryRow}>
+                      <div style={{ flex: 1 }}>
+                        <p style={styles.summaryPrompt}>{row.index + 1}. {row.question.prompt}</p>
+                        {row.answerText !== null ? (
+                          <p style={styles.summaryAnswer}>{row.answerText}</p>
+                        ) : (
+                          <p style={styles.summaryUnanswered}>Belum dijawab</p>
+                        )}
+                        {row.companionText !== undefined && (
+                          <p style={styles.summarySubLine}>
+                            Sebutkan: {row.companionText ?? <span style={styles.summaryUnanswered}>belum diisi</span>}
+                          </p>
+                        )}
+                        {row.sub && (
+                          <p style={styles.summarySubLine}>
+                            {row.sub.prompt}: {row.sub.answerText ?? <span style={styles.summaryUnanswered}>belum dijawab</span>}
+                            {row.sub.companionText !== undefined && (
+                              <> — Sebutkan: {row.sub.companionText ?? <span style={styles.summaryUnanswered}>belum diisi</span>}</>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                      <button style={styles.summaryEditBtn} onClick={() => editQuestion(row.index)}>
+                        Edit
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <p style={styles.confirmText}>
+                  Apakah Anda yakin dengan jawaban Anda? Anda masih dapat mengubah
+                  jawaban Anda. Klik <strong>Selesai</strong> jika Anda yakin sudah
+                  menyelesaikan jawaban Anda.
+                </p>
+                {error && <p style={styles.errorText}>{error}</p>}
+
+                <div style={{ display: 'flex', alignItems: 'center', marginTop: '2rem', gap: '0.75rem' }}>
+                  <button style={styles.secondaryBtn} onClick={handlePrevious} disabled={isSubmitting}>
+                    <ArrowUp size={18} style={{ marginRight: 8 }} /> Kembali
+                  </button>
+                  <button
+                    style={{ ...styles.primaryBtn, opacity: allAnswered ? 1 : 0.5 }}
+                    onClick={handleNext}
+                    disabled={!allAnswered || isSubmitting}
+                  >
+                    Selesai <Check size={18} style={{ marginLeft: 8 }} />
+                  </button>
+                  <span style={styles.pressEnterHint}>Tekan <strong>Enter ↵</strong></span>
+                </div>
+              </div>
             ) : (
               <div style={styles.questionBlock}>
                 <div style={styles.questionNumber}>
@@ -829,15 +1013,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                 {renderInput()}
                 {error && <p style={styles.errorText}>{error}</p>}
 
-                {lastStep && (
-                  <p style={styles.confirmText}>
-                    Apakah Anda yakin dengan jawaban Anda? Anda masih dapat mengubah
-                    jawaban Anda. Klik <strong>Selesai</strong> jika Anda yakin sudah
-                    menyelesaikan jawaban Anda.
-                  </p>
-                )}
-
-                <div style={{ display: 'flex', alignItems: 'center', marginTop: '2rem', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', marginTop: '2rem', gap: '0.75rem', flexWrap: 'wrap' as const }}>
                   <button
                     style={{ ...styles.secondaryBtn, opacity: currentStep === 0 ? 1 : 1 }}
                     onClick={handlePrevious}
@@ -845,12 +1021,21 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                   >
                     <ArrowUp size={18} style={{ marginRight: 8 }} /> Kembali
                   </button>
+                  {hasSeenSummary && (
+                    <button
+                      style={{ ...styles.secondaryBtn, opacity: canProceed ? 1 : 0.5 }}
+                      onClick={goToSummary}
+                      disabled={!canProceed || isSubmitting}
+                    >
+                      Kembali ke Summary
+                    </button>
+                  )}
                   <button
                     style={{ ...styles.primaryBtn, opacity: canProceed ? 1 : 0.5 }}
                     onClick={handleNext}
                     disabled={!canProceed || isSubmitting}
                   >
-                    {lastStep ? 'Selesai' : 'Lanjut'} <Check size={18} style={{ marginLeft: 8 }} />
+                    Lanjut <Check size={18} style={{ marginLeft: 8 }} />
                   </button>
                   <span style={styles.pressEnterHint}>Tekan <strong>Enter ↵</strong></span>
                 </div>
@@ -1213,5 +1398,57 @@ const styles = {
     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
     boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.05)',
     color: '#334155',
+  } as React.CSSProperties,
+  summaryList: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '0.75rem',
+    marginTop: '1rem',
+    maxHeight: '55vh',
+    overflowY: 'auto' as const,
+    paddingRight: '0.5rem',
+  } as React.CSSProperties,
+  summaryRow: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: '1rem',
+    padding: '1rem 1.25rem',
+    backgroundColor: 'white',
+    border: '1px solid #e2e8f0',
+    borderRadius: '12px',
+  } as React.CSSProperties,
+  summaryPrompt: {
+    fontSize: '0.95rem',
+    fontWeight: 600,
+    color: '#334155',
+    margin: '0 0 0.35rem 0',
+  } as React.CSSProperties,
+  summaryAnswer: {
+    fontSize: '1rem',
+    fontWeight: 600,
+    color: '#2563eb',
+    margin: 0,
+  } as React.CSSProperties,
+  summaryUnanswered: {
+    fontSize: '0.9rem',
+    fontWeight: 600,
+    color: '#dc2626',
+  } as React.CSSProperties,
+  summarySubLine: {
+    fontSize: '0.85rem',
+    color: '#64748b',
+    margin: '0.35rem 0 0 0',
+  } as React.CSSProperties,
+  summaryEditBtn: {
+    flexShrink: 0,
+    backgroundColor: '#eff6ff',
+    color: '#2563eb',
+    border: 'none',
+    borderRadius: '8px',
+    padding: '0.5rem 1rem',
+    fontSize: '0.85rem',
+    fontWeight: 700,
+    cursor: 'pointer',
   } as React.CSSProperties,
 };

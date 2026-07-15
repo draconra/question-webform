@@ -2,14 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Download } from 'lucide-react'
 
 type ScoreSummary = {
+  id: string
   inisial: string
   totalScore: number
   date: string
   nama?: string | null
   noTelp?: string | null
-  signature?: string | null
+  hasSignature: boolean
 }
 
 export default function ScoreTable() {
@@ -49,7 +51,7 @@ export default function ScoreTable() {
             <th style={styles.th}>Inisial Pasien</th>
             <th style={styles.th}>Nama</th>
             <th style={styles.th}>No. Telp</th>
-            <th style={styles.th}>TTD</th>
+            <th style={styles.th}>Dokumen Persetujuan</th>
             <th style={styles.th}>Waktu Pengisian</th>
             <th style={styles.th}>Skor Total IMSA (0-60)</th>
             <th style={styles.th}>Status Validasi</th>
@@ -74,10 +76,17 @@ export default function ScoreTable() {
                   {score.noTelp ?? <span style={styles.emptyCell}>—</span>}
                 </td>
                 <td style={{ ...styles.tdScore, textAlign: 'center' as const }}>
-                  {score.signature
-                    ? <img src={score.signature} alt="TTD" style={styles.signatureThumb} />
-                    : <span style={styles.emptyCell}>—</span>
-                  }
+                  {score.hasSignature ? (
+                    <a
+                      href={`/api/responses/${encodeURIComponent(score.id)}/consent-pdf`}
+                      style={styles.downloadLink}
+                      title="Unduh dokumen persetujuan (PDF)"
+                    >
+                      <Download size={14} /> PDF
+                    </a>
+                  ) : (
+                    <span style={styles.emptyCell}>—</span>
+                  )}
                 </td>
                 <td style={styles.td}>
                   {date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
@@ -210,15 +219,17 @@ const styles = {
     borderRadius: '24px',
     margin: '2rem',
   } as React.CSSProperties,
-  signatureThumb: {
-    display: 'inline-block',
-    width: '72px',
-    height: '36px',
-    objectFit: 'contain' as const,
-    border: '1px solid #e2e8f0',
-    borderRadius: '6px',
-    backgroundColor: 'white',
-    verticalAlign: 'middle',
+  downloadLink: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '6px 12px',
+    backgroundColor: '#eff6ff',
+    color: '#2563eb',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: 700,
+    textDecoration: 'none',
   } as React.CSSProperties,
   emptyCell: {
     color: '#cbd5e1',
