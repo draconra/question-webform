@@ -153,7 +153,7 @@ const styles = {
     transition: 'color 0.2s',
   } as React.CSSProperties,
   clearBtn: {
-    padding: '6px 16px',
+    padding: '14px 16px',
     backgroundColor: 'white',
     border: '1px solid #e2e8f0',
     borderRadius: '8px',
