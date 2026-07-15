@@ -99,6 +99,16 @@ function buildSummaryRow(
   return { question: q, index, answerText, companionText, sub, status };
 }
 
+/** Per-question max digit count for `type: 'number'` questions — HTML <input type="number"> ignores maxLength, so this is enforced onChange. */
+const NUMBER_FIELD_MAX_DIGITS: Record<string, number> = {
+  usia: 3,
+  jumlah_penyakit_kronis: 3,
+  durasi_penyakit_kronis: 3,
+  jumlah_obat_rutin: 2,
+  frekuensi_kunjungan_fktp: 3,
+  riwayat_rawat_inap: 2,
+};
+
 export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   const router = useRouter();
   // Step -4 = Info sheet, -3 = Identity/consent, -2 = Opening, -1 = Inisial, 0+ = questions, 'summary' = review screen
@@ -429,7 +439,6 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                     transform: isSelected ? 'scale(1.02)' : 'scale(1)',
                   }}
                 >
-                  <div style={styles.optionKeyLabel}>{index + 1}</div>
                   <div style={{ flex: 1 }}>{opt.label}</div>
                   {isSelected && <Check size={24} color="var(--primary-color)" />}
                 </div>
@@ -475,7 +484,6 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                         transform: isSubSelected ? 'scale(1.02)' : 'scale(1)',
                       }}
                     >
-                      <div style={styles.optionKeyLabel}>{String.fromCharCode(97 + subIdx)}</div>
                       <div style={{ flex: 1 }}>{subOpt.label}</div>
                       {isSubSelected && <Check size={20} color="var(--primary-color)" />}
                     </div>
@@ -533,11 +541,6 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                     transform: isSelected ? 'scale(1.02)' : 'scale(1)',
                   }}
                 >
-                  <div style={{
-                    ...styles.optionKeyLabel,
-                    backgroundColor: isSelected ? 'var(--primary-color)' : undefined,
-                    color: isSelected ? 'white' : undefined,
-                  }}>{isSelected ? '✓' : index + 1}</div>
                   <div style={{ flex: 1 }}>{opt.label}</div>
                   {isSelected && <Check size={24} color="var(--primary-color)" />}
                 </div>
@@ -571,7 +574,12 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
           type="number"
           style={styles.textInput}
           value={answers[currentQuestion.id] || ''}
-          onChange={(e) => { const qId = currentQuestion.id; const v = e.target.value; setAnswers(prev => ({ ...prev, [qId]: v })); }}
+          onChange={(e) => {
+            const qId = currentQuestion.id;
+            const maxDigits = NUMBER_FIELD_MAX_DIGITS[currentQuestion.variableName];
+            const v = maxDigits ? e.target.value.slice(0, maxDigits) : e.target.value;
+            setAnswers(prev => ({ ...prev, [qId]: v }));
+          }}
           placeholder="Ketik angka di sini..."
           autoComplete="off"
           autoFocus
@@ -815,6 +823,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                   onChange={(e) => setNoTelp(e.target.value)}
                   placeholder="08xx..."
                   autoComplete="tel"
+                  maxLength={13}
                 />
                 <p style={styles.fieldHint}>
                   Nomor disimpan ter-enkripsi — hanya 4 digit depan &amp; 2 digit belakang yang terlihat.
@@ -953,7 +962,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                   {summaryRows.map((row) => (
                     <div key={row.question.id} style={styles.summaryRow}>
                       <div style={{ flex: 1 }}>
-                        <p style={styles.summaryPrompt}>{row.index + 1}. {row.question.prompt}</p>
+                        <p style={styles.summaryPrompt}>{row.question.prompt}</p>
                         {row.answerText !== null ? (
                           <p style={styles.summaryAnswer}>{row.answerText}</p>
                         ) : (
@@ -1181,21 +1190,6 @@ const styles = {
     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.03)',
     color: '#334155',
-  },
-  optionKeyLabel: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '28px',
-    height: '28px',
-    backgroundColor: '#f1f5f9',
-    border: '1px solid #e2e8f0',
-    borderRadius: '6px',
-    fontSize: '12px',
-    fontWeight: 700,
-    marginRight: '1rem',
-    color: '#64748b',
-    flexShrink: 0,
   },
   companionWrapper: {
     marginTop: '1.25rem',
