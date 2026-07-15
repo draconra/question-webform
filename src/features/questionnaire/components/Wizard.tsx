@@ -440,7 +440,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                   }}
                 >
                   <div style={{ flex: 1 }}>{opt.label}</div>
-                  {isSelected && <Check size={24} color="var(--primary-color)" />}
+                  {isSelected && <Check size={24} color="#2563eb" />}
                 </div>
               );
             })}
@@ -485,7 +485,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                       }}
                     >
                       <div style={{ flex: 1 }}>{subOpt.label}</div>
-                      {isSubSelected && <Check size={20} color="var(--primary-color)" />}
+                      {isSubSelected && <Check size={20} color="#2563eb" />}
                     </div>
                   );
                 })}
@@ -542,7 +542,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                   }}
                 >
                   <div style={{ flex: 1 }}>{opt.label}</div>
-                  {isSelected && <Check size={24} color="var(--primary-color)" />}
+                  {isSelected && <Check size={24} color="#2563eb" />}
                 </div>
               );
             })}

@@ -3,6 +3,7 @@
 :root {
   /* Modern Palette - Medical Blue / Professional Slate */
   --primary: #2563eb;
+  --primary-color: #2563eb; /* alias: Wizard.tsx references var(--primary-color) throughout */
   --primary-hover: #1d4ed8;
   --primary-light: #eff6ff;
   
