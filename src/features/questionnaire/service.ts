@@ -134,6 +134,32 @@ export class QuestionnaireService {
   }
 
   /**
+   * Stata variable names are capped at 32 characters (import delimited errors/truncates
+   * past that). Truncate to 32 and disambiguate collisions with a numeric suffix so two
+   * long names that share a 32-char prefix don't silently collapse into the same column.
+   */
+  private toStataVarName(name: string, used: Set<string>): string {
+    let candidate = name.length > 32 ? name.slice(0, 32) : name
+    if (used.has(candidate)) {
+      const base = candidate.slice(0, 29)
+      let n = 2
+      while (used.has(`${base}_${n}`)) n++
+      candidate = `${base}_${n}`
+    }
+    used.add(candidate)
+    return candidate
+  }
+
+  /**
+   * Stata's `import delimited` never auto-parses date/time text — but an unambiguous
+   * "YYYY-MM-DD HH:MM:SS" (no "T"/"Z"/milliseconds) is parseable in one step with
+   * `clock(created_at, "YMDhms")`, unlike raw ISO 8601 which needs pre-cleanup first.
+   */
+  private formatStataDatetime(date: Date): string {
+    return date.toISOString().replace('T', ' ').replace(/\.\d+Z$/, '')
+  }
+
+  /**
    * Pure transformation — generates CSV content from raw data.
    * No I/O involved; easily testable.
    */
@@ -147,7 +173,11 @@ export class QuestionnaireService {
       answers: Array<{ questionId: string; value: string | null }>
     }>
   }): string {
-    const headers = ['response_id', 'inisial', 'total_score', 'created_at', ...template.questions.map((q) => q.variableName)]
+    const usedNames = new Set<string>(['response_id', 'inisial', 'total_score', 'created_at'])
+    const headers = [
+      'response_id', 'inisial', 'total_score', 'created_at',
+      ...template.questions.map((q) => this.toStataVarName(q.variableName, usedNames)),
+    ]
     const escapedHeaders = headers.map(h => this.escapeCSVCell(h)).join(',')
 
     const rows = template.responses.map(response => {
@@ -155,7 +185,7 @@ export class QuestionnaireService {
         this.escapeCSVCell(response.id),
         this.escapeCSVCell(response.inisial),
         this.escapeCSVCell(response.totalScore),
-        this.escapeCSVCell(response.createdAt.toISOString())
+        this.escapeCSVCell(this.formatStataDatetime(response.createdAt))
       ]
       for (const question of template.questions) {
         const answer = response.answers.find((a) => a.questionId === question.id)
