@@ -49,3 +49,7 @@ next-env.d.ts
 
 /src/generated/prisma
 .gstack/
+
+# claude code (local machine config)
+.claude/settings.json
+.claude/settings.local.json
