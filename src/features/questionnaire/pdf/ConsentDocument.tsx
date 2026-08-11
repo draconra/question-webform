@@ -1,6 +1,7 @@
 import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer'
 import type { ConsentResponse } from '../repository'
 import { UGM_LOGO_DATA_URI } from './ugmLogo'
+import { PENELITI_SIGNATURE_DATA_URI } from './penelitiSignature'
 
 /**
  * Signed consent PDF ("LEMBAR PERSETUJUAN") for a single response — admin-only download.
@@ -44,6 +45,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 },
   label: { fontSize: 10.5, fontWeight: 'bold', marginTop: 10, marginBottom: 4 },
   text: { marginBottom: 2 },
+  teamText: { marginBottom: 2, fontWeight: 'bold' },
   fieldRow: { flexDirection: 'row', marginBottom: 2 },
   fieldLabel: { width: 70 },
   bulletRow: { flexDirection: 'row', marginBottom: 6, paddingRight: 4 },
@@ -82,7 +84,7 @@ export default function ConsentDocument({ data }: { data: ConsentResponse }) {
 
         <Text style={styles.label}>Tim Peneliti:</Text>
         {TEAM.map((name) => (
-          <Text key={name} style={styles.text}>{name}</Text>
+          <Text key={name} style={styles.teamText}>{name}</Text>
         ))}
 
         <Text style={styles.label}>Saya yang bertanda tangan di bawah ini :</Text>
@@ -126,7 +128,7 @@ export default function ConsentDocument({ data }: { data: ConsentResponse }) {
             <Text style={styles.footerRole}>Nama Responden</Text>
           </View>
 
-          {/* Column 2 & 3: manual wet-ink placeholders — the app never captures these signatures. */}
+          {/* Column 2: manual wet-ink placeholder — the app never captures this signature. */}
           <View style={styles.footerCol}>
             <Text style={styles.footerDateLine}>………………, ………………. 2026</Text>
             <View style={styles.signatureBox}>
@@ -138,13 +140,15 @@ export default function ConsentDocument({ data }: { data: ConsentResponse }) {
             <Text style={styles.footerRole}>(Jika berbeda dari peneliti)</Text>
           </View>
 
+          {/* Column 3: Peneliti — pre-signed by dr. Aghnaa Gayatri, baked into every consent PDF. */}
           <View style={styles.footerCol}>
             <Text style={styles.footerDateLine}>………………, ………………. 2026</Text>
             <View style={styles.signatureBox}>
-              <View style={styles.signatureUnderline} />
+              {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image is a PDF-drawing primitive, not an HTML <img>; no `alt` prop exists on its type. */}
+              <Image src={PENELITI_SIGNATURE_DATA_URI} style={styles.signatureImage} />
             </View>
             <View style={styles.signatureUnderline} />
-            <Text style={styles.footerName}>(                              )</Text>
+            <Text style={styles.footerName}>( dr. Aghnaa Gayatri, M.Sc, PhD, Sp.KKLP, Subsp.FOMC )</Text>
             <Text style={styles.footerRole}>Peneliti</Text>
           </View>
         </View>

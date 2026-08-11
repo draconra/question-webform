@@ -790,10 +790,10 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
 
                 <p style={styles.consentSubHeading}>Tim Peneliti:</p>
                 <div style={styles.teamList}>
-                  <p style={{ margin: 0 }}>dr. Aghnaa Gayatri, M.Sc, PhD, Sp.KKLP, Subsp.FOMC</p>
-                  <p style={{ margin: 0 }}>Prof. dr. Hari Koesnanto Josep, MPH, DrPH, Sp.KKLP</p>
-                  <p style={{ margin: 0 }}>Dr. dr. Wahyudi Istiono, M.Kes, Sp.KKLP Subsp. COPC</p>
-                  <p style={{ margin: 0 }}>dr. Aulia Astagina Rahmadini</p>
+                  <p style={{ margin: 0, fontWeight: 700 }}>dr. Aghnaa Gayatri, M.Sc, PhD, Sp.KKLP, Subsp.FOMC</p>
+                  <p style={{ margin: 0, fontWeight: 700 }}>Prof. dr. Hari Koesnanto Josep, MPH, DrPH, Sp.KKLP</p>
+                  <p style={{ margin: 0, fontWeight: 700 }}>Dr. dr. Wahyudi Istiono, M.Kes, Sp.KKLP Subsp. COPC</p>
+                  <p style={{ margin: 0, fontWeight: 700 }}>dr. Aulia Astagina Rahmadini</p>
                 </div>
 
                 <p style={{ ...styles.consentSubHeading, marginTop: '2rem' }}>
