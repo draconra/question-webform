@@ -54,6 +54,10 @@ export class QuestionnaireService {
     return this.repository.getConsentResponse(id)
   }
 
+  async softDeleteResponse(id: string): Promise<boolean> {
+    return this.repository.softDeleteResponse(id)
+  }
+
   async countResponses(): Promise<number> {
     return this.repository.countResponses()
   }

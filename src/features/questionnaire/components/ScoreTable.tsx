@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Download } from 'lucide-react'
+import { Download, Trash2 } from 'lucide-react'
 
 type ScoreSummary = {
   id: string
@@ -19,6 +19,8 @@ export default function ScoreTable() {
   const [scores, setScores] = useState<ScoreSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<ScoreSummary | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -39,6 +41,23 @@ export default function ScoreTable() {
     return () => controller.abort()
   }, [])
 
+  async function confirmDelete() {
+    if (!pendingDelete) return
+    const target = pendingDelete
+    setDeletingId(target.id)
+    try {
+      const res = await fetch(`/api/responses/${encodeURIComponent(target.id)}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to delete response')
+      setScores((prev) => prev.filter((s) => s.id !== target.id))
+      router.refresh() // "Total Respons" card on the dashboard is server-rendered
+    } catch {
+      setError('Gagal menghapus data responden')
+    } finally {
+      setDeletingId(null)
+      setPendingDelete(null)
+    }
+  }
+
   if (loading) return <div style={styles.loading}>Memuat skor…</div>
   if (error) return <div style={styles.errorBox}>{error}</div>
   if (scores.length === 0) return <div style={styles.emptyState}>Belum ada data skor responden.</div>
@@ -55,13 +74,14 @@ export default function ScoreTable() {
             <th style={styles.th}>Waktu Pengisian</th>
             <th style={styles.th}>Skor Total IMSA (0-60)</th>
             <th style={styles.th}>Status Validasi</th>
+            <th style={styles.th}>Aksi</th>
           </tr>
         </thead>
         <tbody>
-          {scores.map((score, idx) => {
+          {scores.map((score) => {
             const date = new Date(score.date)
             return (
-              <tr key={`${score.inisial}-${idx}`} style={styles.tr}>
+              <tr key={score.id} style={styles.tr}>
                 <td style={styles.td}>
                   <button
                     onClick={() => router.push(`?inisial=${encodeURIComponent(score.inisial)}`)}
@@ -106,11 +126,49 @@ export default function ScoreTable() {
                 <td style={styles.td}>
                   <span style={styles.validStatus}>Selesai</span>
                 </td>
+                <td style={{ ...styles.tdScore, textAlign: 'center' as const }}>
+                  <button
+                    onClick={() => setPendingDelete(score)}
+                    disabled={deletingId === score.id}
+                    style={styles.deleteButton}
+                    title="Hapus data responden ini"
+                  >
+                    <Trash2 size={14} /> Hapus
+                  </button>
+                </td>
               </tr>
             )
           })}
         </tbody>
       </table>
+
+      {pendingDelete && (
+        <div style={styles.dialogOverlay}>
+          <div style={styles.dialogCard}>
+            <h3 style={styles.dialogTitle}>Hapus data responden {pendingDelete.inisial}?</h3>
+            <p style={styles.dialogBody}>
+              Data akan disembunyikan dari tabel skor, analitik, dan ekspor CSV. Data tidak
+              dihapus permanen dari database dan hanya dapat dipulihkan secara manual.
+            </p>
+            <div style={styles.dialogActions}>
+              <button
+                onClick={() => setPendingDelete(null)}
+                disabled={deletingId === pendingDelete.id}
+                style={styles.dialogCancelBtn}
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deletingId === pendingDelete.id}
+                style={styles.dialogConfirmBtn}
+              >
+                {deletingId === pendingDelete.id ? 'Menghapus…' : 'Hapus'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -234,5 +292,73 @@ const styles = {
   emptyCell: {
     color: '#cbd5e1',
     fontSize: '16px',
+  } as React.CSSProperties,
+  deleteButton: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '6px 12px',
+    backgroundColor: '#fef2f2',
+    color: '#b91c1c',
+    border: 'none',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: 700,
+    cursor: 'pointer',
+  } as React.CSSProperties,
+  dialogOverlay: {
+    position: 'fixed',
+    inset: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 50,
+    padding: '1.5rem',
+  } as React.CSSProperties,
+  dialogCard: {
+    backgroundColor: 'white',
+    borderRadius: '20px',
+    padding: '2rem',
+    maxWidth: '420px',
+    width: '100%',
+    boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+  } as React.CSSProperties,
+  dialogTitle: {
+    fontSize: '18px',
+    fontWeight: 800,
+    color: '#0f172a',
+    margin: '0 0 0.75rem',
+  } as React.CSSProperties,
+  dialogBody: {
+    fontSize: '14px',
+    color: '#475569',
+    lineHeight: 1.5,
+    margin: '0 0 1.5rem',
+  } as React.CSSProperties,
+  dialogActions: {
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: '0.75rem',
+  } as React.CSSProperties,
+  dialogCancelBtn: {
+    padding: '10px 18px',
+    borderRadius: '10px',
+    border: '1px solid #e2e8f0',
+    backgroundColor: 'white',
+    color: '#334155',
+    fontWeight: 700,
+    fontSize: '14px',
+    cursor: 'pointer',
+  } as React.CSSProperties,
+  dialogConfirmBtn: {
+    padding: '10px 18px',
+    borderRadius: '10px',
+    border: 'none',
+    backgroundColor: '#dc2626',
+    color: 'white',
+    fontWeight: 700,
+    fontSize: '14px',
+    cursor: 'pointer',
   } as React.CSSProperties,
 }

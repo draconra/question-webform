@@ -98,6 +98,7 @@ model Response {
   noTelp         String?      // Phone number — stored pre-masked (first 4 + last 2 digits visible)
   signature      String?      // Hand-drawn signature as PNG data URL (base64)
   totalScore     Int?         // Computed IMSA total score (0–60)
+  deletedAt      DateTime?    // Soft delete — non-null hides the row from every admin view
   createdAt      DateTime     @default(now())
 
   formTemplate   FormTemplate @relation(fields: [formTemplateId], references: [id], onDelete: Cascade)
@@ -106,6 +107,7 @@ model Response {
   @@index([inisial])
   @@index([createdAt])
   @@index([totalScore])
+  @@index([deletedAt])
 }
 
 model Answer {

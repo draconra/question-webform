@@ -45,6 +45,8 @@ export interface QuestionnaireRepository {
   getAnalytics(inisial?: string): Promise<AnalyticsQuestion[]>
   getScoresByInisial(): Promise<ScoreSummary[]>
   getConsentResponse(id: string): Promise<ConsentResponse | null>
+  /** Marks a response as deleted without removing it from the database. Returns false if the id doesn't exist or is already deleted. */
+  softDeleteResponse(id: string): Promise<boolean>
 }
 
 /**
@@ -65,7 +67,7 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
     return this.prisma.formTemplate.findFirst({
       include: {
         questions: { orderBy: { orderIndex: 'asc' } },
-        responses: { include: { answers: true } },
+        responses: { where: { deletedAt: null }, include: { answers: true } },
       },
     })
   }
@@ -97,16 +99,16 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
   }
 
   async countResponses(): Promise<number> {
-    return this.prisma.response.count()
+    return this.prisma.response.count({ where: { deletedAt: null } })
   }
 
   async getAnalytics(inisial?: string): Promise<AnalyticsQuestion[]> {
     const template = await this.prisma.formTemplate.findFirst({
       include: {
         questions: { orderBy: { orderIndex: 'asc' } },
-        responses: { 
-          where: inisial ? { inisial } : undefined,
-          include: { answers: true } 
+        responses: {
+          where: { deletedAt: null, ...(inisial ? { inisial } : {}) },
+          include: { answers: true }
         },
       },
     })
@@ -139,6 +141,7 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
   async getScoresByInisial(): Promise<ScoreSummary[]> {
     const responses = await this.prisma.response.findMany({
       where: {
+        deletedAt: null,
         totalScore: { not: null },
         inisial: { not: null, notIn: [""] }
       },
@@ -157,7 +160,7 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
   }
 
   async getConsentResponse(id: string): Promise<ConsentResponse | null> {
-    const r = await this.prisma.response.findUnique({ where: { id } })
+    const r = await this.prisma.response.findFirst({ where: { id, deletedAt: null } })
     if (!r) return null
     return {
       id: r.id,
@@ -168,5 +171,13 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
       signature: r.signature,
       createdAt: r.createdAt,
     }
+  }
+
+  async softDeleteResponse(id: string): Promise<boolean> {
+    const { count } = await this.prisma.response.updateMany({
+      where: { id, deletedAt: null },
+      data: { deletedAt: new Date() },
+    })
+    return count > 0
   }
 }
