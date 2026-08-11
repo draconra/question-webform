@@ -773,8 +773,8 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                   <Image
                     src="/ugm-logo.png"
                     alt="Universitas Gadjah Mada"
-                    width={128}
-                    height={128}
+                    width={180}
+                    height={180}
                     style={{ objectFit: 'contain' }}
                     priority
                   />
