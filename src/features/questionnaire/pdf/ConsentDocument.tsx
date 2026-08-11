@@ -142,7 +142,7 @@ export default function ConsentDocument({ data }: { data: ConsentResponse }) {
 
           {/* Column 3: Peneliti — pre-signed by dr. Aghnaa Gayatri, baked into every consent PDF. */}
           <View style={styles.footerCol}>
-            <Text style={styles.footerDateLine}>………………, ………………. 2026</Text>
+            <Text style={styles.footerDateLine}>………………, {signedDateLong}</Text>
             <View style={styles.signatureBox}>
               {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image is a PDF-drawing primitive, not an HTML <img>; no `alt` prop exists on its type. */}
               <Image src={PENELITI_SIGNATURE_DATA_URI} style={styles.signatureImage} />
