@@ -1,5 +1,6 @@
 import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer'
 import type { ConsentResponse } from '../repository'
+import { UGM_LOGO_DATA_URI } from './ugmLogo'
 
 /**
  * Signed consent PDF ("LEMBAR PERSETUJUAN") for a single response — admin-only download.
@@ -36,8 +37,11 @@ const BULLETS = (signedDateLong: string) => [
 ]
 
 const styles = StyleSheet.create({
-  page: { padding: 48, fontSize: 10.5, fontFamily: 'Helvetica', color: '#0f172a', lineHeight: 1.4 },
-  title: { fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginBottom: 18 },
+  page: { padding: 36, fontSize: 10.5, fontFamily: 'Helvetica', color: '#0f172a', lineHeight: 1.4 },
+  header: { alignItems: 'center', marginBottom: 10 },
+  logo: { width: 58, height: 58, objectFit: 'contain' },
+  headerRule: { borderBottomWidth: 1, borderBottomColor: '#cbd5e1', marginBottom: 14 },
+  title: { fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 },
   label: { fontSize: 10.5, fontWeight: 'bold', marginTop: 10, marginBottom: 4 },
   text: { marginBottom: 2 },
   fieldRow: { flexDirection: 'row', marginBottom: 2 },
@@ -45,7 +49,7 @@ const styles = StyleSheet.create({
   bulletRow: { flexDirection: 'row', marginBottom: 6, paddingRight: 4 },
   bulletMark: { width: 12 },
   bulletText: { flex: 1 },
-  footerRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 36 },
+  footerRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 24 },
   footerCol: { flex: 1, paddingHorizontal: 6, alignItems: 'center' },
   footerDateLine: { fontSize: 9.5, marginBottom: 8 },
   signatureBox: { height: 60, width: '100%', alignItems: 'center', justifyContent: 'flex-end' },
@@ -65,6 +69,12 @@ export default function ConsentDocument({ data }: { data: ConsentResponse }) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
+        <View style={styles.header}>
+          {/* eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image is a PDF-drawing primitive, not an HTML <img>; no `alt` prop exists on its type. */}
+          <Image src={UGM_LOGO_DATA_URI} style={styles.logo} />
+        </View>
+        <View style={styles.headerRule} />
+
         <Text style={styles.title}>LEMBAR PERSETUJUAN</Text>
 
         <Text style={styles.label}>Judul Penelitian:</Text>

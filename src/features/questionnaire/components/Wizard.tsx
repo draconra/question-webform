@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowUp, ArrowDown, Check } from 'lucide-react';
@@ -766,6 +767,18 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
               </div>
             ) : step === 'identity' ? (
               <div style={styles.questionBlock}>
+                <div style={styles.docHeader}>
+                  <Image
+                    src="/ugm-logo.png"
+                    alt="Universitas Gadjah Mada"
+                    width={96}
+                    height={96}
+                    style={{ objectFit: 'contain' }}
+                    priority
+                  />
+                </div>
+                <div style={styles.docHeaderRule} />
+
                 <h2 style={styles.docTitle}>LEMBAR PERSETUJUAN</h2>
 
                 <p style={styles.consentSubHeading}>Judul Penelitian:</p>
@@ -1278,6 +1291,16 @@ const styles = {
     color: '#475569',
     transition: 'all 0.2s',
   },
+  docHeader: {
+    display: 'flex',
+    justifyContent: 'center',
+    marginBottom: '0.75rem',
+  } as React.CSSProperties,
+  docHeaderRule: {
+    height: 1,
+    background: '#e2e8f0',
+    margin: '0 0 1.25rem',
+  } as React.CSSProperties,
   docTitle: {
     fontSize: 'clamp(20px, 4vw, 28px)',
     fontWeight: 800,
