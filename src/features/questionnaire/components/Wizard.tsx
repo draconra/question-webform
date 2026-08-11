@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -114,6 +114,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   const router = useRouter();
   // Step -4 = Info sheet, -3 = Identity/consent, -2 = Opening, -1 = Inisial, 0+ = questions, 'summary' = review screen
   const [step, setStep] = useState<'info' | 'identity' | 'opening' | 'inisial' | 'summary' | number>('info');
+  const contentWrapperRef = useRef<HTMLDivElement>(null);
   const [nama, setNama] = useState('');
   const [alamat, setAlamat] = useState('');
   const [noTelp, setNoTelp] = useState('');
@@ -339,6 +340,13 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
       setIsSubmitting(false);
     }
   };
+
+  // Reset scroll to top on every step change — otherwise a step entered after
+  // scrolling down on the previous one renders mid-scroll (e.g. the consent
+  // step's logo/title hidden above the fold).
+  useEffect(() => {
+    contentWrapperRef.current?.scrollTo({ top: 0 });
+  }, [step]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -607,7 +615,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
         <div style={{ ...styles.progressBarFill, width: `${progressPercentage}%` }} />
       </div>
 
-      <div style={styles.contentWrapper}>
+      <div style={styles.contentWrapper} ref={contentWrapperRef}>
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={step}
