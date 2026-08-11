@@ -731,7 +731,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                   <h3 style={styles.infoHeading}>Kompensasi</h3>
                   <p>
                     Jika Anda bersedia mengikuti penelitian ini, dengan mengisi kuesioner, Anda akan
-                    mendapatkan kompensasi berupa cinderamata <em>pouch</em>.
+                    berkesempatan mendapatkan kompensasi berupa cinderamata (*persediaan terbatas).
                   </p>
 
                   <h3 style={styles.infoHeading}>Pendanaan dan persetujuan</h3>
