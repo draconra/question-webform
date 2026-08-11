@@ -630,7 +630,9 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
 
                 <div style={styles.infoBody}>
                   <p>
-                    Kami, Aghnaa Gayatri, Hari Koesnanto, Wahyudi Istiono, tim peneliti dari
+                    Kami, <strong>dr. Aghnaa Gayatri, M.Sc, PhD, Sp.KKLP, Subsp.FOMC</strong>,{' '}
+                    <strong>Prof. dr. Hari Koesnanto Josep, MPH, DrPH, Sp.KKLP</strong>,{' '}
+                    <strong>Dr. dr. Wahyudi Istiono, M.Kes, Sp.KKLP Subsp. COPC</strong>, tim peneliti dari
                     Universitas Gadjah Mada, akan melakukan penelitian yang berjudul &ldquo;Beyond
                     Disease Counts : A Quantitative Analysis of Complexity Patterns in Multimorbid
                     Patient Populations in Yogyakarta using the Indonesian Version of Intermed-SA
@@ -771,8 +773,8 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                   <Image
                     src="/ugm-logo.png"
                     alt="Universitas Gadjah Mada"
-                    width={96}
-                    height={96}
+                    width={128}
+                    height={128}
                     style={{ objectFit: 'contain' }}
                     priority
                   />

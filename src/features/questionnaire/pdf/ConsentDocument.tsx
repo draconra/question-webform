@@ -40,7 +40,7 @@ const BULLETS = (signedDateLong: string) => [
 const styles = StyleSheet.create({
   page: { padding: 36, fontSize: 10.5, fontFamily: 'Helvetica', color: '#0f172a', lineHeight: 1.4 },
   header: { alignItems: 'center', marginBottom: 10 },
-  logo: { width: 58, height: 58, objectFit: 'contain' },
+  logo: { width: 76, height: 76, objectFit: 'contain' },
   headerRule: { borderBottomWidth: 1, borderBottomColor: '#cbd5e1', marginBottom: 14 },
   title: { fontSize: 14, fontWeight: 'bold', textAlign: 'center', marginBottom: 12 },
   label: { fontSize: 10.5, fontWeight: 'bold', marginTop: 10, marginBottom: 4 },
