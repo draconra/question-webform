@@ -39,6 +39,14 @@ export async function POST() {
       })
     }
 
+    // NOTE: /questionnaire and /api/responses both cache the template/question list
+    // for up to 1 hour (unstable_cache). This Next version's revalidateTag() requires
+    // a cache-life profile that unstable_cache's plain string tags don't satisfy, so
+    // there's no proactive invalidation here — after a (re)seed, it can take up to an
+    // hour for respondents to see the new template. Acceptable: seeding is a rare,
+    // one-time admin action. If that staleness window becomes a problem, the fix is to
+    // move these reads onto the newer "use cache" + cacheTag/updateTag APIs instead.
+
     return NextResponse.json({ message: 'Seed successful! IMSA Questionnaire has been created.' })
   } catch (error) {
     logger.error('Seed error', { error: error instanceof Error ? error.message : 'Unknown error' })

@@ -1,5 +1,6 @@
 import { PrismaClient, FormTemplate, Question, Response, Answer } from '@prisma/client'
 import { FormTemplateWithQuestions } from './types'
+import { parseOptions } from './utils'
 export type { FormTemplateWithQuestions }
 
 export type ResponseWithAnswers = Response & {
@@ -37,9 +38,27 @@ export type ConsentResponse = {
   createdAt: Date
 }
 
+/** Minimal shape needed by buildStataCSV — deliberately excludes signature/nama/alamat/noTelp. */
+export type TemplateExportData = {
+  questions: Question[]
+  responses: Array<{
+    id: string
+    inisial: string | null
+    totalScore: number | null
+    createdAt: Date
+    answers: Array<{ questionId: string; value: string | null }>
+  }>
+}
+
+export type TemplateSummary = { title: string; questionCount: number }
+
 export interface QuestionnaireRepository {
   getTemplate(): Promise<FormTemplateWithQuestions | null>
-  getTemplateWithResponses(): Promise<(FormTemplate & { questions: Question[]; responses: (Response & { answers: Answer[] })[] }) | null>
+  /** Just enough to render the admin dashboard header — no question rows. */
+  getTemplateSummary(): Promise<TemplateSummary | null>
+  /** questionId → variableName, for scoring a submission. No prompt/options/orderIndex. */
+  getQuestionVarNames(): Promise<Record<string, string>>
+  getTemplateWithResponses(): Promise<TemplateExportData | null>
   saveResponse(formTemplateId: string, inisial: string, totalScore: number, answers: { questionId: string; value: string }[], extra?: { nama?: string; noTelp?: string; signature?: string; alamat?: string }): Promise<Response>
   countResponses(): Promise<number>
   getAnalytics(inisial?: string): Promise<AnalyticsQuestion[]>
@@ -63,11 +82,36 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
     })
   }
 
-  async getTemplateWithResponses() {
+  async getTemplateSummary(): Promise<TemplateSummary | null> {
+    const template = await this.prisma.formTemplate.findFirst({
+      select: { title: true, _count: { select: { questions: true } } },
+    })
+    if (!template) return null
+    return { title: template.title, questionCount: template._count.questions }
+  }
+
+  async getQuestionVarNames(): Promise<Record<string, string>> {
+    const template = await this.prisma.formTemplate.findFirst({
+      select: { questions: { select: { id: true, variableName: true } } },
+    })
+    if (!template) return {}
+    return Object.fromEntries(template.questions.map((q) => [q.id, q.variableName]))
+  }
+
+  async getTemplateWithResponses(): Promise<TemplateExportData | null> {
     return this.prisma.formTemplate.findFirst({
-      include: {
+      select: {
         questions: { orderBy: { orderIndex: 'asc' } },
-        responses: { where: { deletedAt: null }, include: { answers: true } },
+        responses: {
+          where: { deletedAt: null },
+          select: {
+            id: true,
+            inisial: true,
+            totalScore: true,
+            createdAt: true,
+            answers: { select: { questionId: true, value: true } },
+          },
+        },
       },
     })
   }
@@ -108,22 +152,29 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
         questions: { orderBy: { orderIndex: 'asc' } },
         responses: {
           where: { deletedAt: null, ...(inisial ? { inisial } : {}) },
-          include: { answers: true }
+          // Only the answer pairs are used below — signature/nama/alamat/noTelp
+          // would otherwise ride along on every response row for nothing.
+          select: { answers: { select: { questionId: true, value: true } } },
         },
       },
     })
     if (!template) return []
 
+    // One questionId → value map per response, built once, instead of an
+    // Array.find() per (question, response) pair — O(responses × answers)
+    // instead of O(questions × responses × answers).
+    const answerMaps = template.responses.map((r) => new Map(r.answers.map((a) => [a.questionId, a.value])))
+
     return template.questions.map((question) => {
       const distribution: Record<string, number> = {}
-      for (const response of template.responses) {
-        const answer = response.answers.find((a) => a.questionId === question.id)
-        if (answer?.value != null) {
+      for (const answerMap of answerMaps) {
+        const value = answerMap.get(question.id)
+        if (value != null) {
           // Checkbox answers are stored as comma-joined tokens (e.g. "a,c,e" or "Hipertensi, Stroke").
           // Split each token so the distribution counts individual selections, not whole combo strings.
           const tokens = question.type === 'checkbox'
-            ? answer.value.split(',').map(s => s.trim()).filter(Boolean)
-            : [answer.value]
+            ? value.split(',').map(s => s.trim()).filter(Boolean)
+            : [value]
           for (const t of tokens) distribution[t] = (distribution[t] ?? 0) + 1
         }
       }
@@ -132,7 +183,7 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
         variableName: question.variableName,
         prompt: question.prompt,
         type: question.type,
-        options: question.options ? JSON.parse(question.options) : null,
+        options: parseOptions(question.options),
         answerDistribution: distribution,
       }
     })
@@ -145,8 +196,21 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
         totalScore: { not: null },
         inisial: { not: null, notIn: [""] }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      // Excludes `signature` (base64 PNG, up to ~300KB each) — this list can be
+      // dozens of rows and the table only needs a has-one-or-not flag for it.
+      select: { id: true, inisial: true, totalScore: true, createdAt: true, nama: true, noTelp: true },
     })
+    if (responses.length === 0) return []
+
+    // Second, narrow query just to know *which* of those rows has a signature.
+    // A `signature IS NOT NULL` check doesn't require reading the TOASTed value,
+    // so this is cheap — nowhere near the cost of selecting `signature` above.
+    const withSignature = await this.prisma.response.findMany({
+      where: { id: { in: responses.map((r) => r.id) }, signature: { not: null } },
+      select: { id: true },
+    })
+    const signatureIds = new Set(withSignature.map((r) => r.id))
 
     return responses.map(r => ({
       id: r.id,
@@ -155,7 +219,7 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
       date: r.createdAt,
       nama: r.nama,
       noTelp: r.noTelp,
-      hasSignature: r.signature != null,
+      hasSignature: signatureIds.has(r.id),
     }))
   }
 

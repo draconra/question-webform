@@ -1,3 +1,14 @@
+import type { QuestionOption } from './types'
+
+/**
+ * Parse the JSON-stringified `Question.options` column.
+ * Single source of truth for the `options ? JSON.parse(options) : null`
+ * pattern, previously duplicated in repository.ts and service.ts.
+ */
+export function parseOptions(raw: string | null): QuestionOption[] | null {
+  return raw ? JSON.parse(raw) : null
+}
+
 /**
  * Mask a phone number for privacy-preserving storage.
  * Keeps the first 4 digits and last 2 digits; replaces the middle with '*'.

@@ -15,15 +15,17 @@ export default async function AdminDashboard({
   const selectedInisial = typeof params.inisial === 'string' ? params.inisial : null
 
   const session = await auth()
-  
-  if (!session) {
+
+  if (!session?.user) {
     redirect("/api/auth/signin?callbackUrl=/admin")
   }
 
   const repository = new PrismaQuestionnaireRepository(prisma)
   const service = new QuestionnaireService(repository)
-  const responsesCount = await service.countResponses()
-  const template = await service.getTemplate()
+  const [responsesCount, templateSummary] = await Promise.all([
+    service.countResponses(),
+    service.getTemplateSummary(),
+  ])
 
   return (
     <div style={styles.container}>
@@ -62,7 +64,7 @@ export default async function AdminDashboard({
           <p style={styles.statSubtitle}>Seluruh respons yang masuk</p>
         </div>
 
-        {template && (
+        {templateSummary && (
           <div style={styles.statCard}>
             <div style={styles.statHeader}>
               <h2 style={styles.statTitle}>Kuesioner Aktif</h2>
@@ -70,8 +72,8 @@ export default async function AdminDashboard({
                 <FileText size={20} color="#10b981" />
               </div>
             </div>
-            <strong style={styles.templateName}>{template.title}</strong>
-            <p style={styles.statSubtitle}>{template.questions.length} pertanyaan terdaftar</p>
+            <strong style={styles.templateName}>{templateSummary.title}</strong>
+            <p style={styles.statSubtitle}>{templateSummary.questionCount} pertanyaan terdaftar</p>
           </div>
         )}
 

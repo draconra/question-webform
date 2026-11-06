@@ -1,7 +1,6 @@
-import { FormTemplate, Question, Answer, Response } from '@prisma/client'
-import { QuestionnaireRepository, AnalyticsQuestion, ScoreSummary, ConsentResponse } from './repository'
-import { FormTemplateWithQuestions, ParsedFormTemplate, ParsedQuestion, QuestionOption } from './types'
-import { calculateImsaScore } from './utils'
+import { QuestionnaireRepository, AnalyticsQuestion, ScoreSummary, ConsentResponse, TemplateExportData, TemplateSummary } from './repository'
+import { ParsedFormTemplate, ParsedQuestion } from './types'
+import { calculateImsaScore, parseOptions } from './utils'
 
 // Re-export so existing imports of calculateImsaScore from service.ts keep working.
 export { calculateImsaScore }
@@ -33,7 +32,7 @@ export class QuestionnaireService {
 
     const parsedQuestions: ParsedQuestion[] = template.questions.map((q) => ({
       ...q,
-      options: q.options ? JSON.parse(q.options) : null
+      options: parseOptions(q.options)
     }))
 
     return {
@@ -42,7 +41,17 @@ export class QuestionnaireService {
     }
   }
 
-  async getTemplateWithResponses(): Promise<(FormTemplate & { questions: Question[]; responses: (Response & { answers: Answer[] })[] }) | null> {
+  /** Title + question count only — for the admin dashboard header, not the full question list. */
+  async getTemplateSummary(): Promise<TemplateSummary | null> {
+    return this.repository.getTemplateSummary()
+  }
+
+  /** questionId → variableName, for scoring a submission without loading the full template. */
+  async getQuestionVarNames(): Promise<Record<string, string>> {
+    return this.repository.getQuestionVarNames()
+  }
+
+  async getTemplateWithResponses(): Promise<TemplateExportData | null> {
     return this.repository.getTemplateWithResponses()
   }
 
@@ -185,6 +194,9 @@ export class QuestionnaireService {
     const escapedHeaders = headers.map(h => this.escapeCSVCell(h)).join(',')
 
     const rows = template.responses.map(response => {
+      // Map lookup instead of Array.find() per question — O(answers) to build
+      // instead of O(questions × answers) to scan, same win as getAnalytics.
+      const answerByQuestionId = new Map(response.answers.map((a) => [a.questionId, a.value]))
       const row: string[] = [
         this.escapeCSVCell(response.id),
         this.escapeCSVCell(response.inisial),
@@ -192,8 +204,7 @@ export class QuestionnaireService {
         this.escapeCSVCell(this.formatStataDatetime(response.createdAt))
       ]
       for (const question of template.questions) {
-        const answer = response.answers.find((a) => a.questionId === question.id)
-        row.push(this.escapeCSVCell(answer?.value))
+        row.push(this.escapeCSVCell(answerByQuestionId.get(question.id)))
       }
       return row.join(',')
     })
