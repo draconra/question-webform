@@ -1,8 +1,22 @@
 import { NextResponse } from 'next/server'
+import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { QuestionnaireService, PrismaQuestionnaireRepository } from '@/features/questionnaire'
 import { randomUUID } from 'crypto'
+
+// questionId → variableName rarely changes (only on reseed) and is needed on every
+// submission just to score it — cache it instead of re-fetching per request.
+// Invalidated by /api/seed via revalidateTag('template').
+const getCachedQuestionVarNames = unstable_cache(
+  async () => {
+    const repository = new PrismaQuestionnaireRepository(prisma)
+    const service = new QuestionnaireService(repository)
+    return service.getQuestionVarNames()
+  },
+  ['question-var-names'],
+  { revalidate: 3600, tags: ['template'] }
+)
 
 const MAX_INISIAL_LEN = 10
 const MAX_ANSWER_VALUE_LEN = 500
@@ -140,14 +154,8 @@ export async function POST(req: Request) {
     const repository = new PrismaQuestionnaireRepository(prisma)
     const service = new QuestionnaireService(repository)
 
-    // Fetch variable names for scoring (questionId → variableName)
-    const template = await service.getTemplate()
-    const questionVarNames: Record<string, string> = {}
-    if (template) {
-      for (const q of template.questions) {
-        questionVarNames[q.id] = q.variableName
-      }
-    }
+    // questionId → variableName for scoring — cached, see getCachedQuestionVarNames above.
+    const questionVarNames = await getCachedQuestionVarNames()
 
     const response = await service.submitResponse(
       {
