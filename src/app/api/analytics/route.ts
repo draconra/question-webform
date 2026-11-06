@@ -3,13 +3,11 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { QuestionnaireService, PrismaQuestionnaireRepository } from '@/features/questionnaire'
 import { randomUUID } from 'crypto'
-import { auth } from '@/auth'
+import { requireAdmin } from '@/lib/requireAdmin'
 
 export async function GET(request: Request) {
-  const session = await auth()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const authResult = await requireAdmin()
+  if (!authResult.ok) return authResult.response
 
   const { searchParams } = new URL(request.url)
   const inisial = searchParams.get('inisial') || undefined

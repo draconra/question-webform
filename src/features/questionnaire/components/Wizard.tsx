@@ -118,6 +118,9 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
   const [nama, setNama] = useState('');
   const [alamat, setAlamat] = useState('');
   const [noTelp, setNoTelp] = useState('');
+  // Honeypot — hidden from real users via CSS, invisible to screen readers via aria-hidden/tabIndex.
+  // A filled value means a bot filled every field blindly; server rejects the submission silently.
+  const [website, setWebsite] = useState('');
   const [signature, setSignature] = useState('');
   const [consent, setConsent] = useState(false);
   const [inisial, setInisial] = useState('');
@@ -326,7 +329,7 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
       const res = await fetch('/api/responses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, website }),
       });
 
       if (!res.ok) {
@@ -809,6 +812,19 @@ export default function Wizard({ template }: { template: ParsedFormTemplate }) {
                 <p style={{ ...styles.consentSubHeading, marginTop: '2rem' }}>
                   Saya yang bertanda tangan di bawah ini :
                 </p>
+
+                {/* Honeypot field — off-screen, not just display:none, so basic bots that skip
+                    hidden-element detection still fill it. Real users never see or reach it. */}
+                <input
+                  type="text"
+                  name="website"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  style={{ position: 'absolute', left: '-9999px', width: 1, height: 1, opacity: 0 }}
+                />
 
                 <p style={styles.fieldLabel}>
                   Nama <span style={styles.requiredMark}>*</span>
