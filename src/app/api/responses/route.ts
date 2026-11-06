@@ -122,6 +122,19 @@ export async function POST(req: Request) {
 
   try {
     const rawBody = await req.json()
+
+    // Honeypot — bots that blindly fill every field trip this hidden input.
+    // Report success without touching the DB, so the bot doesn't learn to adapt.
+    if (
+      rawBody &&
+      typeof rawBody === 'object' &&
+      typeof (rawBody as Record<string, unknown>).website === 'string' &&
+      (rawBody as Record<string, unknown>).website !== ''
+    ) {
+      logger.warn('Honeypot triggered, dropping submission', { operation, correlationId })
+      return NextResponse.json({ success: true })
+    }
+
     const body = validateBody(rawBody)
 
     const repository = new PrismaQuestionnaireRepository(prisma)
@@ -152,7 +165,9 @@ export async function POST(req: Request) {
     const duration = Date.now() - startTime
     logger.info('Operation succeeded', { operation, correlationId, duration, responseId: response.id })
 
-    return NextResponse.json({ success: true, response })
+    // Echo only the id — the full record (including signature/PII) was briefly
+    // reflected back in this response and not needed by the client.
+    return NextResponse.json({ success: true, id: response.id })
   } catch (error) {
     const duration = Date.now() - startTime
     const message = error instanceof Error ? error.message : 'Unknown error'

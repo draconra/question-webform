@@ -4,14 +4,12 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { QuestionnaireService, PrismaQuestionnaireRepository } from '@/features/questionnaire'
 import { randomUUID } from 'crypto'
-import { auth } from '@/auth'
+import { requireAdmin } from '@/lib/requireAdmin'
 import ConsentDocument from '@/features/questionnaire/pdf/ConsentDocument'
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
-  const session = await auth()
-  if (!session) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const authResult = await requireAdmin()
+  if (!authResult.ok) return authResult.response
 
   const correlationId = randomUUID()
   const operation = 'export_consent_pdf'
