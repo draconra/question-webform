@@ -17,6 +17,10 @@ export default async function AdminDashboard({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const params = await searchParams
+  // `inisial` is a display label only — it has no unique constraint (two submissions
+  // can share one), so the actual analytics filter uses `id` (the Response row's own
+  // primary key), not this text. See ScoreTable's click handler, which sends both.
+  const selectedResponseId = typeof params.id === 'string' ? params.id : null
   const selectedInisial = typeof params.inisial === 'string' ? params.inisial : null
   const rawSection = typeof params.section === 'string' ? params.section : null
   const section: AdminSection = SECTIONS.includes(rawSection as AdminSection) ? (rawSection as AdminSection) : 'ringkasan'
@@ -143,7 +147,7 @@ export default async function AdminDashboard({
           )}
 
           {section === 'analitik' && (
-            selectedInisial ? (
+            selectedResponseId ? (
               <div style={styles.analyticsSection}>
                 <div style={styles.sectionHeader}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.25rem' }}>
@@ -156,7 +160,7 @@ export default async function AdminDashboard({
                     Distribusi jawaban responden untuk setiap indikator IMSA.
                   </p>
                 </div>
-                <AnalyticsDashboard inisial={selectedInisial} />
+                <AnalyticsDashboard responseId={selectedResponseId} />
               </div>
             ) : (
               <div style={styles.analyticsSection}>

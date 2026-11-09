@@ -84,7 +84,7 @@ export default function ScoreTable() {
               <tr key={score.id} style={styles.tr}>
                 <td style={styles.td}>
                   <button
-                    onClick={() => router.push(`?section=analitik&inisial=${encodeURIComponent(score.inisial)}`)}
+                    onClick={() => router.push(`?section=analitik&id=${encodeURIComponent(score.id)}&inisial=${encodeURIComponent(score.inisial)}`)}
                     style={styles.inisialButton}
                     title="Lihat analitik untuk pasien ini"
                   >
