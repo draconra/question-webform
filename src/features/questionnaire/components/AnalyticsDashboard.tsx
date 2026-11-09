@@ -59,7 +59,7 @@ function getAnswerInfo(
   return { labels, rawKeys: keys }
 }
 
-export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
+export default function AnalyticsDashboard({ responseId }: { responseId: string }) {
   const [questions, setQuestions] = useState<AnalyticsQuestion[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -68,7 +68,7 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
     const controller = new AbortController()
     setLoading(true)
     setError(null)
-    fetch(`/api/analytics?inisial=${encodeURIComponent(inisial)}`, { signal: controller.signal })
+    fetch(`/api/analytics?id=${encodeURIComponent(responseId)}`, { signal: controller.signal })
       .then((res) => res.json())
       .then((data) => {
         setQuestions(data)
@@ -80,7 +80,7 @@ export default function AnalyticsDashboard({ inisial }: { inisial: string }) {
         setLoading(false)
       })
     return () => controller.abort()
-  }, [inisial])
+  }, [responseId])
 
   if (loading) {
     return <div style={styles.loading}>Memuat analitik…</div>

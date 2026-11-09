@@ -61,7 +61,7 @@ export interface QuestionnaireRepository {
   getTemplateWithResponses(): Promise<TemplateExportData | null>
   saveResponse(formTemplateId: string, inisial: string, totalScore: number, answers: { questionId: string; value: string }[], extra?: { nama?: string; noTelp?: string; signature?: string; alamat?: string }): Promise<Response>
   countResponses(): Promise<number>
-  getAnalytics(inisial?: string): Promise<AnalyticsQuestion[]>
+  getAnalytics(responseId?: string): Promise<AnalyticsQuestion[]>
   getScoresByInisial(): Promise<ScoreSummary[]>
   getConsentResponse(id: string): Promise<ConsentResponse | null>
   /** Marks a response as deleted without removing it from the database. Returns false if the id doesn't exist or is already deleted. */
@@ -146,12 +146,16 @@ export class PrismaQuestionnaireRepository implements QuestionnaireRepository {
     return this.prisma.response.count({ where: { deletedAt: null } })
   }
 
-  async getAnalytics(inisial?: string): Promise<AnalyticsQuestion[]> {
+  async getAnalytics(responseId?: string): Promise<AnalyticsQuestion[]> {
     const template = await this.prisma.formTemplate.findFirst({
       include: {
         questions: { orderBy: { orderIndex: 'asc' } },
         responses: {
-          where: { deletedAt: null, ...(inisial ? { inisial } : {}) },
+          // Filtered by the exact Response row, not by `inisial` text — `inisial` has
+          // no unique constraint (prisma/schema.prisma), so two different submissions
+          // can share one, and filtering by text alone would merge their answers into
+          // one "patient" view (e.g. both jenis_kelamin values showing at once).
+          where: { deletedAt: null, ...(responseId ? { id: responseId } : {}) },
           // Only the answer pairs are used below — signature/nama/alamat/noTelp
           // would otherwise ride along on every response row for nothing.
           select: { answers: { select: { questionId: true, value: true } } },

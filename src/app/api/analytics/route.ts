@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   if (!authResult.ok) return authResult.response
 
   const { searchParams } = new URL(request.url)
-  const inisial = searchParams.get('inisial') || undefined
+  const responseId = searchParams.get('id') || undefined
 
   const correlationId = randomUUID()
   const operation = 'get_analytics'
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   try {
     const repository = new PrismaQuestionnaireRepository(prisma)
     const service = new QuestionnaireService(repository)
-    const analytics = await service.getAnalytics(inisial)
+    const analytics = await service.getAnalytics(responseId)
 
     const duration = Date.now() - startTime
     logger.info('Operation succeeded', { operation, correlationId, duration })

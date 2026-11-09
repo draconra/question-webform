@@ -71,8 +71,8 @@ export class QuestionnaireService {
     return this.repository.countResponses()
   }
 
-  async getAnalytics(inisial?: string): Promise<AnalyticsQuestion[]> {
-    return this.repository.getAnalytics(inisial)
+  async getAnalytics(responseId?: string): Promise<AnalyticsQuestion[]> {
+    return this.repository.getAnalytics(responseId)
   }
 
   /**
