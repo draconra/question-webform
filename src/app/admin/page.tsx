@@ -3,8 +3,9 @@ import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 import { QuestionnaireService, PrismaQuestionnaireRepository } from "@/features/questionnaire"
 import AnalyticsDashboard from "@/features/questionnaire/components/AnalyticsDashboard"
+import OverallStatsCharts from "@/features/questionnaire/components/OverallStatsCharts"
 import ScoreTable from "@/features/questionnaire/components/ScoreTable"
-import { Users, FileText, Download, LayoutDashboard, LogOut, CheckSquare } from "lucide-react"
+import { Users, FileText, Download, LayoutDashboard, LogOut, CheckSquare, PieChart as PieChartIcon } from "lucide-react"
 
 export default async function AdminDashboard({
   searchParams,
@@ -22,9 +23,10 @@ export default async function AdminDashboard({
 
   const repository = new PrismaQuestionnaireRepository(prisma)
   const service = new QuestionnaireService(repository)
-  const [responsesCount, templateSummary] = await Promise.all([
+  const [responsesCount, templateSummary, overallAnalytics] = await Promise.all([
     service.countResponses(),
     service.getTemplateSummary(),
+    service.getAnalytics(), // no inisial → aggregated across every non-deleted response
   ])
 
   return (
@@ -89,6 +91,22 @@ export default async function AdminDashboard({
             Download CSV
           </a>
         </div>
+      </div>
+
+      {/* Overall demographic/intake statistics — accumulated across every response */}
+      <div style={styles.analyticsSection}>
+        <div style={styles.sectionHeader}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.25rem' }}>
+            <div style={styles.iconCircleBlue}>
+              <PieChartIcon size={20} color="#3b82f6" />
+            </div>
+            <h2 style={styles.sectionTitle}>Statistik Keseluruhan Responden</h2>
+          </div>
+          <p style={styles.sectionSubtitle}>
+            Akumulasi data diri &amp; tambahan dari seluruh responden (jenis kelamin, pekerjaan, pendidikan, dll).
+          </p>
+        </div>
+        <OverallStatsCharts questions={overallAnalytics} />
       </div>
 
       {/* Patient Scores Section */}
