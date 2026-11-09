@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { auth, signOut } from "@/auth"
 import { redirect } from "next/navigation"
 import { prisma } from "@/lib/prisma"
@@ -5,7 +6,10 @@ import { QuestionnaireService, PrismaQuestionnaireRepository } from "@/features/
 import AnalyticsDashboard from "@/features/questionnaire/components/AnalyticsDashboard"
 import OverallStatsCharts from "@/features/questionnaire/components/OverallStatsCharts"
 import ScoreTable from "@/features/questionnaire/components/ScoreTable"
+import AdminSidebar, { AdminSection } from "@/features/questionnaire/components/AdminSidebar"
 import { Users, FileText, Download, LayoutDashboard, LogOut, CheckSquare, PieChart as PieChartIcon } from "lucide-react"
+
+const SECTIONS: AdminSection[] = ['ringkasan', 'statistik', 'skor', 'analitik']
 
 export default async function AdminDashboard({
   searchParams,
@@ -14,6 +18,8 @@ export default async function AdminDashboard({
 }) {
   const params = await searchParams
   const selectedInisial = typeof params.inisial === 'string' ? params.inisial : null
+  const rawSection = typeof params.section === 'string' ? params.section : null
+  const section: AdminSection = SECTIONS.includes(rawSection as AdminSection) ? (rawSection as AdminSection) : 'ringkasan'
 
   const session = await auth()
 
@@ -23,11 +29,15 @@ export default async function AdminDashboard({
 
   const repository = new PrismaQuestionnaireRepository(prisma)
   const service = new QuestionnaireService(repository)
-  const [responsesCount, templateSummary, overallAnalytics] = await Promise.all([
-    service.countResponses(),
-    service.getTemplateSummary(),
-    service.getAnalytics(), // no inisial → aggregated across every non-deleted response
-  ])
+
+  // Only fetch what the active section needs — ScoreTable and AnalyticsDashboard
+  // fetch their own data client-side, so `skor`/`analitik` need nothing here.
+  const [responsesCount, templateSummary] = section === 'ringkasan'
+    ? await Promise.all([service.countResponses(), service.getTemplateSummary()])
+    : [null, null]
+  const overallAnalytics = section === 'statistik'
+    ? await service.getAnalytics() // no inisial → aggregated across every non-deleted response
+    : null
 
   return (
     <div style={styles.container}>
@@ -39,7 +49,7 @@ export default async function AdminDashboard({
           </div>
           <h1 style={styles.pageTitle}>Admin Dashboard</h1>
         </div>
-        
+
         <form
           action={async () => {
             'use server';
@@ -53,109 +63,121 @@ export default async function AdminDashboard({
         </form>
       </header>
 
-      {/* Stats row */}
-      <div style={styles.statsGrid}>
-        <div style={styles.statCard}>
-          <div style={styles.statHeader}>
-            <h2 style={styles.statTitle}>Total Respons</h2>
-            <div style={styles.iconCircleBlue}>
-              <Users size={20} color="#3b82f6" />
-            </div>
-          </div>
-          <div style={styles.statValue}>{responsesCount}</div>
-          <p style={styles.statSubtitle}>Seluruh respons yang masuk</p>
-        </div>
+      <div style={styles.body}>
+        <AdminSidebar active={section} />
 
-        {templateSummary && (
-          <div style={styles.statCard}>
-            <div style={styles.statHeader}>
-              <h2 style={styles.statTitle}>Kuesioner Aktif</h2>
-              <div style={styles.iconCircleGreen}>
-                <FileText size={20} color="#10b981" />
+        <main style={styles.main}>
+          {section === 'ringkasan' && (
+            <div style={styles.statsGrid}>
+              <div style={styles.statCard}>
+                <div style={styles.statHeader}>
+                  <h2 style={styles.statTitle}>Total Respons</h2>
+                  <div style={styles.iconCircleBlue}>
+                    <Users size={20} color="#3b82f6" />
+                  </div>
+                </div>
+                <div style={styles.statValue}>{responsesCount}</div>
+                <p style={styles.statSubtitle}>Seluruh respons yang masuk</p>
+              </div>
+
+              {templateSummary && (
+                <div style={styles.statCard}>
+                  <div style={styles.statHeader}>
+                    <h2 style={styles.statTitle}>Kuesioner Aktif</h2>
+                    <div style={styles.iconCircleGreen}>
+                      <FileText size={20} color="#10b981" />
+                    </div>
+                  </div>
+                  <strong style={styles.templateName}>{templateSummary.title}</strong>
+                  <p style={styles.statSubtitle}>{templateSummary.questionCount} pertanyaan terdaftar</p>
+                </div>
+              )}
+
+              <div style={{...styles.statCard, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
+                <div style={styles.statHeader}>
+                  <h2 style={styles.statTitle}>Export Data</h2>
+                  <div style={styles.iconCirclePurple}>
+                    <Download size={20} color="#8b5cf6" />
+                  </div>
+                </div>
+                <p style={{...styles.statSubtitle, marginBottom: '1.25rem'}}>Format CSV (STATA Compatible)</p>
+                <a href="/api/export" style={styles.downloadBtn}>
+                  Download CSV
+                </a>
               </div>
             </div>
-            <strong style={styles.templateName}>{templateSummary.title}</strong>
-            <p style={styles.statSubtitle}>{templateSummary.questionCount} pertanyaan terdaftar</p>
-          </div>
-        )}
+          )}
 
-        <div style={{...styles.statCard, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
-          <div style={styles.statHeader}>
-            <h2 style={styles.statTitle}>Export Data</h2>
-            <div style={styles.iconCirclePurple}>
-              <Download size={20} color="#8b5cf6" />
-            </div>
-          </div>
-          <p style={{...styles.statSubtitle, marginBottom: '1.25rem'}}>Format CSV (STATA Compatible)</p>
-          <a href="/api/export" style={styles.downloadBtn}>
-            Download CSV
-          </a>
-        </div>
-      </div>
-
-      {/* Overall demographic/intake statistics — accumulated across every response */}
-      <div style={styles.analyticsSection}>
-        <div style={styles.sectionHeader}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.25rem' }}>
-            <div style={styles.iconCircleBlue}>
-              <PieChartIcon size={20} color="#3b82f6" />
-            </div>
-            <h2 style={styles.sectionTitle}>Statistik Keseluruhan Responden</h2>
-          </div>
-          <p style={styles.sectionSubtitle}>
-            Akumulasi data diri &amp; tambahan dari seluruh responden (jenis kelamin, pekerjaan, pendidikan, dll).
-          </p>
-        </div>
-        <OverallStatsCharts questions={overallAnalytics} />
-      </div>
-
-      {/* Patient Scores Section */}
-      <div style={styles.analyticsSection}>
-        <div style={styles.sectionHeader}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.25rem' }}>
-            <div style={styles.iconCirclePurple}>
-              <CheckSquare size={20} color="#8b5cf6" />
-            </div>
-            <h2 style={styles.sectionTitle}>Skor Pasien (IMSA)</h2>
-          </div>
-          <p style={styles.sectionSubtitle}>
-            Hasil perhitungan komposit (0-60) per responden berdasarkan inisial. Skor {'>'} 30 ditandai merah.
-          </p>
-        </div>
-        <ScoreTable />
-      </div>
-
-      {/* Analytics charts */}
-      {selectedInisial ? (
-        <div style={styles.analyticsSection}>
-          <div style={styles.sectionHeader}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.25rem' }}>
-              <div style={styles.iconCircleBlue}>
-                <Users size={20} color="#3b82f6" />
+          {section === 'statistik' && (
+            <div style={styles.analyticsSection}>
+              <div style={styles.sectionHeader}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.25rem' }}>
+                  <div style={styles.iconCircleBlue}>
+                    <PieChartIcon size={20} color="#3b82f6" />
+                  </div>
+                  <h2 style={styles.sectionTitle}>Statistik Keseluruhan Responden</h2>
+                </div>
+                <p style={styles.sectionSubtitle}>
+                  Akumulasi data diri &amp; tambahan dari seluruh responden (jenis kelamin, pekerjaan, pendidikan, dll).
+                </p>
               </div>
-              <h2 style={styles.sectionTitle}>Analitik per Pertanyaan: {selectedInisial}</h2>
+              <OverallStatsCharts questions={overallAnalytics ?? []} />
             </div>
-            <p style={styles.sectionSubtitle}>
-              Distribusi jawaban responden untuk setiap indikator IMSA.
-            </p>
-          </div>
-          <AnalyticsDashboard inisial={selectedInisial} />
-        </div>
-      ) : (
-        <div style={styles.analyticsSection}>
-          <div style={styles.sectionHeader}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.25rem' }}>
-              <div style={styles.iconCircleBlue}>
-                <Users size={20} color="#3b82f6" />
+          )}
+
+          {section === 'skor' && (
+            <div style={styles.analyticsSection}>
+              <div style={styles.sectionHeader}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.25rem' }}>
+                  <div style={styles.iconCirclePurple}>
+                    <CheckSquare size={20} color="#8b5cf6" />
+                  </div>
+                  <h2 style={styles.sectionTitle}>Skor Pasien (IMSA)</h2>
+                </div>
+                <p style={styles.sectionSubtitle}>
+                  Hasil perhitungan komposit (0-60) per responden berdasarkan inisial. Skor {'>'} 30 ditandai merah.
+                </p>
               </div>
-              <h2 style={styles.sectionTitle}>Analitik per Pertanyaan</h2>
+              <ScoreTable />
             </div>
-          </div>
-          <div style={styles.emptyState}>
-             Klik salah satu inisial pasien pada tabel di atas untuk melihat detail analitik per pertanyaan.
-          </div>
-        </div>
-      )}
+          )}
+
+          {section === 'analitik' && (
+            selectedInisial ? (
+              <div style={styles.analyticsSection}>
+                <div style={styles.sectionHeader}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.25rem' }}>
+                    <div style={styles.iconCircleBlue}>
+                      <Users size={20} color="#3b82f6" />
+                    </div>
+                    <h2 style={styles.sectionTitle}>Analitik per Pertanyaan: {selectedInisial}</h2>
+                  </div>
+                  <p style={styles.sectionSubtitle}>
+                    Distribusi jawaban responden untuk setiap indikator IMSA.
+                  </p>
+                </div>
+                <AnalyticsDashboard inisial={selectedInisial} />
+              </div>
+            ) : (
+              <div style={styles.analyticsSection}>
+                <div style={styles.sectionHeader}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '0.25rem' }}>
+                    <div style={styles.iconCircleBlue}>
+                      <Users size={20} color="#3b82f6" />
+                    </div>
+                    <h2 style={styles.sectionTitle}>Analitik per Pertanyaan</h2>
+                  </div>
+                </div>
+                <div style={styles.emptyState}>
+                  Pilih salah satu inisial pasien pada tab{' '}
+                  <Link href="?section=skor" style={styles.emptyStateLink}>Skor Pasien</Link>
+                  {' '}untuk melihat detail analitik per pertanyaan.
+                </div>
+              </div>
+            )
+          )}
+        </main>
+      </div>
     </div>
   )
 }
@@ -182,6 +204,15 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '1.25rem',
+  } as React.CSSProperties,
+  body: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: '2rem',
+  } as React.CSSProperties,
+  main: {
+    flex: 1,
+    minWidth: 0,
   } as React.CSSProperties,
   logoBox: {
     width: '48px',
@@ -308,7 +339,6 @@ const styles = {
     boxShadow: '0 10px 15px -3px rgba(79, 70, 229, 0.2)',
   } as React.CSSProperties,
   analyticsSection: {
-    marginTop: '4rem',
     backgroundColor: 'white',
     border: '1px solid #e2e8f0',
     borderRadius: '32px',
@@ -342,5 +372,10 @@ const styles = {
     borderRadius: '24px',
     border: '2px dashed #cbd5e1',
     marginTop: '2rem',
+  } as React.CSSProperties,
+  emptyStateLink: {
+    color: '#3b82f6',
+    fontWeight: 700,
+    textDecoration: 'underline',
   } as React.CSSProperties,
 }
